@@ -10,3 +10,9 @@ pnpm run dev
 ```
 
 The app defaults to `PORT=8081` and `BASE_PATH=/`. Copy `.env.example` to `.env` and fill Firebase values for real authentication.
+
+## Vercel
+
+- Framework preset: Vite
+- Build command: `pnpm run build`
+- Output directory: `dist`
