@@ -1,0 +1,18 @@
+{
+  "name": "@workspace/scripts",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "hello": "tsx ./src/hello.ts",
+    "smoke:website-sales": "tsx ./src/smoke-website-sales-agent.ts",
+    "e2e:website-sales": "tsx ./src/e2e-website-sales-flow.ts",
+    "test:website-analysis": "tsx ./src/test-website-analysis-urls.ts",
+    "test:fashion-website-analysis": "tsx ./src/test-fashion-website-analysis.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "tsx": "catalog:"
+  }
+}
