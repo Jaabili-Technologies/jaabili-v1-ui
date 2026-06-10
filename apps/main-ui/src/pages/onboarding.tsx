@@ -16,6 +16,7 @@ import {
   Mail,
   Megaphone,
   MessageSquare,
+  PhoneCall,
   Search,
   Sparkles,
   Users,
@@ -61,15 +62,16 @@ const USE_CASES: Choice[] = [
 ];
 
 const PLANS: Choice[] = [
-  { id: "starter", label: "Starter", icon: Bot, description: "1 active agent for first deployment.", plan: "starter" },
-  { id: "growth", label: "Growth", icon: Sparkles, description: "3 agents for sales, WhatsApp, and follow-up.", plan: "growth" },
-  { id: "scale", label: "Scale", icon: Building2, description: "5 agents for sales, support, follow-up, and ops.", plan: "scale" },
+  { id: "starter", label: "Starter", icon: Bot, description: "1 active agent, website channel, 500 conversations/month.", plan: "starter" },
+  { id: "growth", label: "Growth", icon: Sparkles, description: "3 active agents, WhatsApp/email handoff, 5,000 conversations/month.", plan: "growth" },
+  { id: "scale", label: "Scale", icon: Building2, description: "5 active agents, support and ops coverage, custom volume.", plan: "scale" },
 ];
 
 const CHANNELS: Choice[] = [
   { id: "web", label: "Website", icon: Globe2 },
   { id: "whatsapp", label: "WhatsApp", icon: MessageSquare },
   { id: "email", label: "Email", icon: Mail },
+  { id: "phone", label: "Call handoff", icon: PhoneCall },
   { id: "search", label: "Search traffic", icon: Search },
 ];
 
@@ -115,9 +117,9 @@ const AGENTS_BY_PLAN: Record<string, string[]> = {
 const STEPS: StepConfig[] = [
   { key: "role", title: "What best describes you?", hint: "This keeps the workspace defaults relevant.", choices: ROLES },
   { key: "useCase", title: "Which agent outcome matters first?", hint: "Company details come later inside the dashboard.", choices: USE_CASES },
-  { key: "plan", title: "Select the agent stack for this workspace.", hint: "The plan controls how many agents are available.", choices: PLANS },
-  { key: "channels", title: "Where should these agents work?", hint: "You can connect the actual accounts after setup.", choices: CHANNELS, multi: true },
-  { key: "agents", title: "Select the agents for this plan.", hint: "Only agents included in the selected plan are available now.", choices: AGENT_CHOICES, multi: true },
+  { key: "channels", title: "Where should the agents work?", hint: "Pick the customer touchpoints now. You can connect actual accounts later.", choices: CHANNELS, multi: true },
+  { key: "plan", title: "Select your subscription plan.", hint: "This controls how many agents can be activated in this workspace.", choices: PLANS },
+  { key: "agents", title: "Choose the agents included in your plan.", hint: "Only agents available under the selected subscription are shown.", choices: AGENT_CHOICES, multi: true },
 ];
 
 export default function Onboarding() {
@@ -143,10 +145,15 @@ export default function Onboarding() {
   const currentValue = answers[step.key];
   const selectedPlan = String(answers.plan || "growth");
   const enabledAgents = AGENTS_BY_PLAN[selectedPlan] ?? AGENTS_BY_PLAN.growth;
+  const selectedAgentIds = Array.isArray(answers.agents)
+    ? answers.agents.filter((agent) => enabledAgents.includes(agent))
+    : enabledAgents;
   const stepChoices =
     step.key === "agents"
       ? AGENT_CHOICES.filter((choice) => enabledAgents.includes(choice.id))
       : step.choices;
+  const selectedPlanLabel =
+    PLANS.find((plan) => plan.id === selectedPlan)?.label ?? "Growth";
   const greeting = user?.displayName?.split(" ")[0] || user?.email?.split("@")[0] || "there";
 
   const canContinue = useMemo(() => {
@@ -238,6 +245,17 @@ export default function Onboarding() {
               <p className="mx-auto mt-3 max-w-xl text-center text-sm leading-6 text-white/50">
                 {step.hint}
               </p>
+
+              {step.key === "agents" && (
+                <div className="mx-auto mt-5 flex max-w-xl flex-wrap items-center justify-center gap-2">
+                  <span className="rounded-full border border-[#67e8f9]/25 bg-[#67e8f9]/10 px-3 py-1 text-xs font-medium text-[#a5f3fc]">
+                    {selectedPlanLabel} plan
+                  </span>
+                  <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/48">
+                    {selectedAgentIds.length}/{enabledAgents.length} agents selected
+                  </span>
+                </div>
+              )}
 
               <div className="mt-8 grid gap-3 sm:grid-cols-2">
                 {stepChoices.map((choice) => {

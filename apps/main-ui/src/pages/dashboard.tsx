@@ -8,6 +8,7 @@ import {
   CheckCircle2,
   Clock3,
   FileText,
+  HelpCircle,
   Home,
   LayoutGrid,
   LogOut,
@@ -138,6 +139,10 @@ export default function Dashboard() {
   );
   const availableAgents = selectedAgents.length > 0 ? selectedAgents : [AGENT_CATALOG[0]];
   const plan = PLAN_LIMITS[selectedPlan] ?? PLAN_LIMITS.growth;
+  const selectedChannels =
+    onboarding?.channels && onboarding.channels.length > 0
+      ? onboarding.channels
+      : ["web"];
 
   const fullName =
     user?.displayName?.trim() || user?.email?.split("@")[0] || "there";
@@ -240,71 +245,58 @@ export default function Dashboard() {
         </header>
 
         <section className="min-h-0 flex-1 overflow-y-auto px-4 py-5 sm:px-6 lg:px-8">
-          <div className="mx-auto max-w-7xl space-y-5">
-            <div className="grid gap-5 xl:grid-cols-[1.35fr_0.65fr]">
-              <div className="rounded-[2rem] border border-white/8 bg-[#15171c] p-5 sm:p-7">
-                <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-                  <div className="max-w-3xl">
-                    <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-[#ffb84d]/25 bg-[#ffb84d]/10 px-3 py-1 text-xs font-medium text-[#ffd28a]">
-                      <Sparkles className="h-3.5 w-3.5" />
-                      Welcome, {firstName}
-                    </div>
-                    <h1 className="text-3xl font-semibold tracking-tight sm:text-5xl">
-                      Your agents should run the sales floor, not wait like a chatbot.
-                    </h1>
-                    <p className="mt-4 max-w-2xl text-sm leading-6 text-white/58 sm:text-base">
-                      Start with Website Sales Agent. Add company details, connect
-                      approved sources, generate the activation plan, approve launch,
-                      and let it qualify visitors, capture leads, and trigger handoffs.
-                    </p>
+          <div className="mx-auto max-w-6xl space-y-5 pb-24">
+            <section className="rounded-[2rem] border border-white/8 bg-[#15171c] p-5 sm:p-7">
+              <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+                <div className="max-w-3xl">
+                  <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-[#ffb84d]/25 bg-[#ffb84d]/10 px-3 py-1 text-xs font-medium text-[#ffd28a]">
+                    <Sparkles className="h-3.5 w-3.5" />
+                    Welcome, {firstName}
                   </div>
-                  {websiteAgent && (
-                    <Link
-                      href={websiteAgent.href}
-                      className="inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-full bg-white px-5 text-sm font-semibold text-black hover:bg-white/90"
-                    >
-                      Open Website Sales Agent
-                      <ArrowUpRight className="h-4 w-4" />
-                    </Link>
-                  )}
+                  <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
+                    Set up the agents you selected.
+                  </h1>
+                  <p className="mt-3 max-w-2xl text-sm leading-6 text-white/58">
+                    Your workspace is based on the {plan.label} plan. Start with the
+                    selected agents below, add business data, and approve each agent
+                    only after the activation analysis is ready.
+                  </p>
                 </div>
-
-                <div className="mt-7 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                  <MetricTile label="Selected agents" value={availableAgents.length} />
-                  <MetricTile label="Plan capacity" value={plan.agents} />
-                  <MetricTile label="Conversation limit" value={plan.conversations} />
-                  <MetricTile label="Primary channel" value="Website" />
-                </div>
+                {websiteAgent && (
+                  <Link
+                    href={websiteAgent.href}
+                    className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-full bg-white px-5 text-sm font-semibold text-black hover:bg-white/90"
+                  >
+                    Continue setup
+                    <ArrowUpRight className="h-4 w-4" />
+                  </Link>
+                )}
               </div>
 
-              <div className="rounded-[2rem] border border-white/8 bg-[#15171c] p-5">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="text-sm font-semibold">Launch readiness</div>
-                    <div className="mt-1 text-xs text-white/45">
-                      Complete this before activating client traffic.
-                    </div>
-                  </div>
-                  <div className="rounded-full bg-[#10b8a6]/12 px-3 py-1 text-xs text-[#9cf5ea]">
-                    Setup
-                  </div>
-                </div>
-                <div className="mt-5 space-y-3">
-                  <ReadinessItem done label="Select Website Sales Agent" />
-                  <ReadinessItem label="Add company profile" />
-                  <ReadinessItem label="Add website, FAQ, pricing, policy" />
-                  <ReadinessItem label="Generate activation analysis" />
-                  <ReadinessItem label="Approve launch consent" />
-                </div>
+              <div className="mt-6 grid gap-3 sm:grid-cols-3">
+                <MetricTile label="Plan" value={plan.label} />
+                <MetricTile label="Selected agents" value={`${availableAgents.length}/${plan.agents}`} />
+                <MetricTile label="Conversations" value={plan.conversations} />
               </div>
-            </div>
+              <div className="mt-4 flex flex-wrap gap-2">
+                {selectedChannels.map((channel) => (
+                  <span
+                    key={channel}
+                    className="rounded-full border border-white/8 bg-black/20 px-3 py-1 text-xs capitalize text-white/50"
+                  >
+                    {channel.replace("-", " ")}
+                  </span>
+                ))}
+              </div>
+            </section>
 
-            <section className="rounded-[2rem] border border-white/8 bg-[#111318] p-5 sm:p-6">
+            <div className="grid gap-5 xl:grid-cols-[1fr_0.72fr]">
+              <section className="rounded-[2rem] border border-white/8 bg-[#111318] p-5 sm:p-6">
               <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                 <div>
                   <h2 className="text-xl font-semibold">My agents</h2>
                   <p className="mt-1 text-sm text-white/45">
-                    These are enabled from onboarding and plan selection.
+                    Only the agents selected during onboarding are shown here.
                   </p>
                 </div>
                 <Link
@@ -320,36 +312,24 @@ export default function Dashboard() {
                   <AgentCard key={agent.id} agent={agent} isPrimary={agent.id === "website-sales"} />
                 ))}
               </div>
-            </section>
-
-            <div className="grid gap-5 xl:grid-cols-[0.9fr_1.1fr]">
-              <section className="rounded-[2rem] border border-white/8 bg-[#15171c] p-5 sm:p-6">
-                <div className="mb-5 flex items-center justify-between">
-                  <div>
-                    <h2 className="text-xl font-semibold">What the sales agent will do</h2>
-                    <p className="mt-1 text-sm text-white/45">
-                      Built for 24/7 sales coverage with human oversight.
-                    </p>
-                  </div>
-                  <ShieldCheck className="h-6 w-6 text-[#10b8a6]" />
-                </div>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <WorkTile icon={MessageCircle} title="Website conversations" text="Talk to visitors, ask intent questions, and answer from approved sources." />
-                  <WorkTile icon={Users} title="Lead qualification" text="Capture details, score urgency, and grade each lead before handoff." />
-                  <WorkTile icon={Mail} title="Email alerts" text="Notify the owner or sales team when a hot lead arrives." />
-                  <WorkTile icon={Phone} title="WhatsApp and call handoff" text="Prepare context for WhatsApp, call back, or human takeover." />
-                </div>
               </section>
 
               <section className="rounded-[2rem] border border-white/8 bg-[#15171c] p-5 sm:p-6">
                 <div className="mb-5 flex items-center justify-between">
                   <div>
-                    <h2 className="text-xl font-semibold">Next actions</h2>
+                    <h2 className="text-xl font-semibold">Guided setup</h2>
                     <p className="mt-1 text-sm text-white/45">
-                      The dashboard should guide the company without confusion.
+                      Follow these steps before sending real traffic.
                     </p>
                   </div>
                   <Clock3 className="h-6 w-6 text-[#ffb84d]" />
+                </div>
+                <div className="mb-5 space-y-3">
+                  <ReadinessItem done label="Select plan and agents" />
+                  <ReadinessItem label="Add company profile" />
+                  <ReadinessItem label="Add website, FAQ, pricing, policy" />
+                  <ReadinessItem label="Generate activation analysis" />
+                  <ReadinessItem label="Approve launch consent" />
                 </div>
                 <div className="space-y-3">
                   <ActionRow title="Open Website Sales Agent" detail="Start company onboarding and add approved business sources." href="/dashboard/agents/website-sales" />
@@ -361,6 +341,7 @@ export default function Dashboard() {
           </div>
         </section>
       </main>
+      <DashboardAssistant />
     </div>
   );
 }
@@ -455,24 +436,6 @@ function AgentCard({ agent, isPrimary }: { agent: ProductAgent; isPrimary: boole
   );
 }
 
-function WorkTile({
-  icon: Icon,
-  title,
-  text,
-}: {
-  icon: typeof MessageCircle;
-  title: string;
-  text: string;
-}) {
-  return (
-    <div className="rounded-3xl border border-white/8 bg-black/22 p-4">
-      <Icon className="h-5 w-5 text-[#ffb84d]" />
-      <div className="mt-3 text-sm font-semibold">{title}</div>
-      <p className="mt-2 text-sm leading-6 text-white/48">{text}</p>
-    </div>
-  );
-}
-
 function ActionRow({
   title,
   detail,
@@ -493,5 +456,21 @@ function ActionRow({
       </span>
       <ArrowUpRight className="h-5 w-5 shrink-0 text-white/45" />
     </Link>
+  );
+}
+
+function DashboardAssistant() {
+  return (
+    <button
+      type="button"
+      aria-label="Open Jaabili setup assistant"
+      className="fixed bottom-5 right-5 z-40 flex h-14 w-14 items-center justify-center rounded-full border border-[#10b8a6]/35 bg-[#0b1f1d] text-[#9cf5ea] shadow-[0_0_30px_rgba(16,184,166,0.28)] transition hover:scale-105 hover:bg-[#12312e]"
+      title="Setup assistant"
+    >
+      <HelpCircle className="h-6 w-6" />
+      <span className="absolute -left-40 hidden rounded-2xl border border-white/10 bg-[#15171c] px-3 py-2 text-xs text-white/70 shadow-xl lg:block">
+        Need help setting up?
+      </span>
+    </button>
   );
 }
