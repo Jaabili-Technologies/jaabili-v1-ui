@@ -485,7 +485,7 @@ export default function WebsiteSalesAgentPage() {
     }
   };
 
-  const startNewChat = async () => {
+  const startCompanySetup = async () => {
     setError(null);
     setMessage("");
     setConversation(null);
@@ -695,7 +695,7 @@ export default function WebsiteSalesAgentPage() {
           isCollapsed={isSidebarCollapsed}
           onClose={() => setIsSidebarOpen(false)}
           onToggleCollapse={() => setIsSidebarCollapsed((value) => !value)}
-          onNewChat={startNewChat}
+          onNewChat={startCompanySetup}
           onSearchQueryChange={setSearchQuery}
           onOpenLibrary={() => {
             setIsLibraryOpen(true);
@@ -902,7 +902,7 @@ function ChatSidebar({
       />
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 flex w-[18rem] flex-col bg-[#1f1f1f] transition-all md:relative md:z-auto md:translate-x-0",
+          "fixed inset-y-0 left-0 z-50 flex w-[17rem] flex-col bg-[#1f1f1f] transition-all md:relative md:z-auto md:translate-x-0",
           isOpen ? "translate-x-0" : "-translate-x-full",
           isCollapsed && "md:w-[4.5rem]",
         )}
@@ -910,7 +910,12 @@ function ChatSidebar({
         <div className="flex h-14 items-center justify-between px-3">
           <div className="flex items-center gap-3">
             <img src={logo} alt="Jaabili" className="h-8 w-8 object-contain" />
-            {!isCollapsed && <span className="text-base font-semibold">Jaabili</span>}
+            {!isCollapsed && (
+              <span className="leading-tight">
+                <span className="block text-sm font-semibold">Jaabili</span>
+                <span className="block text-[11px] text-white/36">Sales Agent</span>
+              </span>
+            )}
           </div>
           <button
             type="button"
@@ -934,16 +939,16 @@ function ChatSidebar({
               Agent workspace
             </div>
           )}
-          <SidebarAction icon={Target} label="Company setup" active onClick={onNewChat} collapsed={isCollapsed} />
+          <SidebarAction icon={Target} label="Start setup" active onClick={onNewChat} collapsed={isCollapsed} />
           <SidebarAction
             icon={LayoutGrid}
-            label={`Knowledge room${tenantSourceCount ? ` (${tenantSourceCount})` : ""}`}
+            label={`Sources${tenantSourceCount ? ` (${tenantSourceCount})` : ""}`}
             onClick={onOpenLibrary}
             collapsed={isCollapsed}
           />
           <SidebarAction
             icon={TrendingUp}
-            label="Analysis & launch"
+            label="Analysis"
             onClick={onOpenInspector}
             collapsed={isCollapsed}
           />
@@ -953,17 +958,17 @@ function ChatSidebar({
               <input
                 value={searchQuery}
                 onChange={(event) => onSearchQueryChange(event.target.value)}
-                placeholder="Search visitor tests"
+                placeholder="Search tests"
                 className="min-w-0 flex-1 bg-transparent outline-none placeholder:text-white/55"
               />
             )}
           </label>
         </nav>
 
-        {!isCollapsed && <div className="mt-6 px-4 text-xs font-medium text-white/45">Visitor test history</div>}
+        {!isCollapsed && <div className="mt-6 px-4 text-xs font-medium text-white/45">Test history</div>}
         <div className="mt-2 min-h-0 flex-1 overflow-y-auto px-2">
           {isCollapsed ? null : conversations.length === 0 ? (
-            <div className="px-3 text-sm text-white/35">No visitor tests yet.</div>
+            <div className="px-3 text-sm text-white/35">No tests yet.</div>
           ) : (
             conversations.map((item) => (
               <button
@@ -1016,7 +1021,7 @@ function ChatSidebar({
             <>
               <div className="min-w-0 flex-1">
                 <div className="truncate text-[13px] font-medium">{workspaceName}</div>
-                <div className="text-xs text-white/40">Agent Lab</div>
+                <div className="text-xs text-white/40">Model settings</div>
               </div>
               <Settings className="size-5 text-white/50" />
             </>
@@ -1072,11 +1077,11 @@ function TopBar({
   onOpenInspector: () => void;
 }) {
   return (
-    <header className="relative z-20 flex h-14 items-center justify-between px-3 md:px-5">
+    <header className="relative z-20 flex h-[3.25rem] items-center justify-between border-b border-white/[0.04] px-3 md:px-5">
       <div className="flex items-center gap-3">
         <Link
           href="/dashboard"
-          className="hidden h-9 items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 text-[13px] font-medium text-white/65 hover:bg-white/10 hover:text-white lg:inline-flex"
+          className="hidden h-8 items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 text-xs font-medium text-white/65 hover:bg-white/10 hover:text-white lg:inline-flex"
         >
           <LayoutGrid className="size-4" />
           Dashboard
@@ -1089,14 +1094,18 @@ function TopBar({
         >
           <Menu className="size-5" />
         </button>
+        <div className="hidden items-center gap-2 rounded-full border border-white/10 bg-[#15171b] px-3 py-1.5 text-xs text-white/58 sm:flex">
+          <Target className="size-3.5 text-[#72f2df]" />
+          Website Sales Agent
+        </div>
         <DropdownSelect
           value={selectedAgent}
           options={agentOptions.map((agent) => ({ value: agent, label: agent }))}
           onChange={onAgentChange}
-          className="max-w-[68vw] md:max-w-none"
+          className="max-w-[58vw] md:max-w-none"
         />
-        <span className="hidden rounded-full border border-white/10 px-3 py-1 text-[11px] text-white/40 sm:inline-flex">
-          runtime: {activeProvider}
+        <span className="hidden rounded-full border border-white/10 px-2.5 py-1 text-[11px] text-white/38 lg:inline-flex">
+          {activeProvider}
         </span>
       </div>
 
@@ -1104,10 +1113,10 @@ function TopBar({
         <button
           type="button"
           onClick={onOpenOnboarding}
-          className="hidden h-9 items-center gap-2 rounded-full border border-[#10b8a6]/20 bg-[#10b8a6]/8 px-3 text-[13px] font-medium text-[#9cf5ea] hover:bg-[#10b8a6]/12 sm:inline-flex"
+          className="hidden h-8 items-center gap-2 rounded-full border border-[#10b8a6]/20 bg-[#10b8a6]/8 px-3 text-xs font-medium text-[#9cf5ea] hover:bg-[#10b8a6]/12 sm:inline-flex"
         >
           <Target className="size-4" />
-          Onboard company
+          Setup
         </button>
         <button
           type="button"
@@ -1150,13 +1159,13 @@ function DropdownSelect({
         type="button"
         onClick={() => setOpen((state) => !state)}
         onBlur={() => window.setTimeout(() => setOpen(false), 120)}
-        className="flex h-10 max-w-full items-center gap-2 rounded-full border border-white/10 bg-[#1f1f1f]/95 px-3.5 text-left text-[13px] font-medium text-white shadow-lg shadow-black/10 transition hover:border-white/20 hover:bg-[#272727] focus:border-[#8ab4ff]/70 focus:outline-none"
+        className="flex h-9 max-w-full items-center gap-2 rounded-full border border-white/10 bg-[#1f1f1f]/95 px-3 text-left text-xs font-medium text-white shadow-lg shadow-black/10 transition hover:border-white/20 hover:bg-[#272727] focus:border-[#8ab4ff]/70 focus:outline-none"
       >
         <span className="min-w-0 truncate">{selected?.label}</span>
         <ChevronDown className={cn("size-4 shrink-0 text-white/55 transition", open && "rotate-180")} />
       </button>
       {open && (
-        <div className="jaabili-pop-in absolute left-0 top-11 z-50 max-h-72 min-w-60 overflow-y-auto rounded-2xl border border-white/10 bg-[#262626] p-1 shadow-2xl shadow-black/40">
+        <div className="jaabili-pop-in absolute left-0 top-10 z-50 max-h-72 min-w-60 overflow-y-auto rounded-2xl border border-white/10 bg-[#262626] p-1 shadow-2xl shadow-black/40">
           {options.map((option) => (
             <button
               key={option.value}
@@ -1167,7 +1176,7 @@ function DropdownSelect({
                 setOpen(false);
               }}
               className={cn(
-                "flex min-h-10 w-full items-center justify-between gap-3 rounded-xl px-3 py-2 text-left text-[13px] transition",
+                "flex min-h-10 w-full items-center justify-between gap-3 rounded-xl px-3 py-2 text-left text-xs transition",
                 option.value === value
                   ? "bg-white/10 text-white"
                   : "text-white/65 hover:bg-white/8 hover:text-white",
@@ -1248,7 +1257,7 @@ function EmptyComposerState({
   return (
     <div
       ref={surfaceRef}
-      className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col justify-start overflow-y-auto px-4 pb-6 pt-8 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      className="mx-auto flex min-h-0 w-full max-w-7xl flex-1 flex-col justify-start overflow-y-auto px-3 pb-6 pt-5 sm:px-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
     >
       <SalesCommandCenter
         analytics={analytics}
@@ -1323,14 +1332,14 @@ function AgentBuildWorkspace({
   ];
 
   return (
-    <section className="jaabili-rise-in mx-auto w-full max-w-5xl space-y-3">
+    <section className="jaabili-rise-in mx-auto w-full max-w-6xl space-y-3">
       <div className="grid gap-3 lg:grid-cols-[0.95fr_1.05fr]">
-        <div className="rounded-3xl border border-white/8 bg-[#111]/85 p-4">
+        <div className="rounded-2xl border border-white/8 bg-[#111]/85 p-4">
           <div className="mb-3 flex items-center justify-between gap-3">
             <div>
-              <div className="text-sm font-semibold text-white">Client intake</div>
+              <div className="text-sm font-semibold text-white">Company intake</div>
               <div className="mt-1 text-xs text-white/42">
-                Collect the details the agent needs before it starts thinking.
+                Collect the business context before analysis starts.
               </div>
             </div>
             <button
@@ -1338,7 +1347,7 @@ function AgentBuildWorkspace({
               onClick={onOpenOnboarding}
               className="rounded-full bg-white px-3 py-2 text-xs font-semibold text-black transition hover:bg-[#dbe8ff]"
             >
-              Fill details
+              Open
             </button>
           </div>
           <div className="grid gap-2 sm:grid-cols-2">
@@ -1349,19 +1358,19 @@ function AgentBuildWorkspace({
               ["Channels", "Website, WhatsApp, email, campaigns, handoff rules"],
             ].map(([title, body]) => (
               <div key={title} className="rounded-2xl bg-black/22 p-3">
-                <div className="text-sm font-medium text-white/86">{title}</div>
+                <div className="text-[13px] font-medium text-white/86">{title}</div>
                 <div className="mt-1 text-xs leading-5 text-white/42">{body}</div>
               </div>
             ))}
           </div>
         </div>
 
-        <div className="rounded-3xl border border-white/8 bg-[#111]/85 p-4">
+        <div className="rounded-2xl border border-white/8 bg-[#111]/85 p-4">
           <div className="mb-3 flex items-center justify-between gap-3">
             <div>
-              <div className="text-sm font-semibold text-white">Knowledge room</div>
+              <div className="text-sm font-semibold text-white">Source room</div>
               <div className="mt-1 text-xs text-white/42">
-                Website pages and business docs become the agent memory.
+                Add the approved website, offers, policies, FAQs, and assets.
               </div>
             </div>
             <div className="rounded-full bg-white/8 px-3 py-1 text-xs text-white/60">
@@ -1382,12 +1391,12 @@ function AgentBuildWorkspace({
                       category: source.category,
                     })
                   }
-                  className="flex min-h-16 items-start gap-3 rounded-2xl border border-white/8 bg-black/22 p-3 text-left transition hover:border-[#10b8a6]/35 hover:bg-[#10b8a6]/8"
+                  className="flex min-h-14 items-start gap-3 rounded-2xl border border-white/8 bg-black/22 p-3 text-left transition hover:border-[#10b8a6]/35 hover:bg-[#10b8a6]/8"
                 >
                   <Icon className={cn("mt-0.5 size-4 shrink-0", source.iconClassName)} />
                   <span>
                     <span className="block text-sm font-medium text-white/82">
-                      {source.label}
+                      Add {source.label}
                     </span>
                     <span className="mt-1 block text-xs leading-5 text-white/38">
                       {source.type === "website"
@@ -1409,12 +1418,12 @@ function AgentBuildWorkspace({
       </div>
 
       <div className="grid gap-3 lg:grid-cols-[1.1fr_0.9fr]">
-        <div className="rounded-3xl border border-[#8ab4ff]/12 bg-[#101827]/90 p-4">
+        <div className="rounded-2xl border border-[#8ab4ff]/12 bg-[#101827]/90 p-4">
           <div className="mb-3 flex items-center justify-between gap-3">
             <div>
               <div className="text-sm font-semibold text-white">Analysis board</div>
               <div className="mt-1 text-xs text-white/42">
-                The agent studies the business, finds sales leaks, and asks for missing data.
+                Jaabili studies the company, finds sales leaks, and requests only useful missing data.
               </div>
             </div>
             <span className="rounded-full bg-black/25 px-3 py-1 text-xs text-[#bcd4ff]">
@@ -1452,7 +1461,7 @@ function AgentBuildWorkspace({
           </div>
         </div>
 
-        <div className="rounded-3xl border border-[#10b8a6]/12 bg-[#0d1716] p-4">
+        <div className="rounded-2xl border border-[#10b8a6]/12 bg-[#0d1716] p-4">
           <div className="text-sm font-semibold text-white">Launch control</div>
           <div className="mt-1 text-xs text-white/42">
             Automation starts only after consent and approved sources.
@@ -1659,19 +1668,19 @@ function SalesCommandCenter({
         : "Setup";
 
   return (
-    <div className="jaabili-rise-in mx-auto mb-4 w-full max-w-5xl">
-      <div className="mb-4 rounded-3xl border border-white/8 bg-[#111]/85 p-4">
+    <div className="jaabili-rise-in mx-auto mb-4 w-full max-w-6xl">
+      <div className="mb-4 rounded-2xl border border-white/8 bg-[#111]/85 p-4 sm:p-5">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="min-w-0">
             <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-[#10b8a6]/25 bg-[#10b8a6]/8 px-3 py-1 text-xs font-medium text-[#8ff4e8]">
               <Target className="size-3.5" />
               Website Sales Agent
             </div>
-            <h1 className="max-w-3xl text-2xl font-semibold tracking-normal text-white/92 md:text-[2rem]">
-              Launch a sales agent for one company, then improve it with real buyer conversations.
+            <h1 className="max-w-3xl text-2xl font-semibold tracking-normal text-white/92 md:text-[1.9rem]">
+              Prepare a website sales agent that studies the company before it starts working.
             </h1>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-white/50">
-              Follow the flow from company setup to launch consent. The chat box is only the testing console after the agent has client knowledge, rules, and a selected sales playbook.
+              Add company details, approved sources, pricing, policies, and assets. Jaabili then diagnoses sales gaps, recommends playbooks, asks for missing data, and waits for launch consent.
             </p>
           </div>
           <div className="shrink-0 rounded-2xl border border-[#8ab4ff]/20 bg-[#101827] px-4 py-3">
@@ -1733,7 +1742,7 @@ function SalesCommandCenter({
             className="inline-flex h-10 items-center gap-2 rounded-full bg-white px-4 text-sm font-semibold text-black transition hover:bg-[#dbe8ff]"
           >
             <Target className="size-4" />
-            Open setup flow
+            Set up company
           </button>
           {sourceOptions.slice(0, 3).map((source) => {
             const Icon = source.icon;
@@ -1787,7 +1796,7 @@ function SalesCommandCenter({
       </div>
 
       <div className="mt-3 grid gap-2 lg:grid-cols-[1.15fr_0.85fr]">
-        <div className="rounded-2xl border border-white/8 bg-white/[0.025] p-2.5">
+        <div className="rounded-2xl border border-white/8 bg-white/[0.025] p-3">
           <div className="mb-2 flex items-center justify-between text-xs text-white/40">
             <span>Agent operating loop</span>
             <span>setup to launch to learning</span>
@@ -1799,7 +1808,7 @@ function SalesCommandCenter({
               ["Operate", "Qualify and route leads"],
               ["Learn", "Labels improve answers"],
             ].map(([title, body], index) => (
-              <div key={title} className="rounded-xl bg-[#111]/80 p-2.5">
+              <div key={title} className="rounded-xl bg-[#111]/80 p-3">
                 <div className="mb-1.5 flex size-5 items-center justify-center rounded-full bg-white/8 text-[11px] text-white/70">
                   {index + 1}
                 </div>

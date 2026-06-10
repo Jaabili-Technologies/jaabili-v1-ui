@@ -17,8 +17,18 @@ const firebaseConfig = {
   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
 };
 
-export const firebaseApp: FirebaseApp = initializeApp(firebaseConfig);
-export const firebaseAuth: Auth = getAuth(firebaseApp);
+export const isFirebaseConfigured = Boolean(
+  firebaseConfig.apiKey &&
+    firebaseConfig.authDomain &&
+    firebaseConfig.projectId &&
+    firebaseConfig.appId &&
+    firebaseConfig.apiKey !== "dev-key",
+);
+
+export const firebaseApp: FirebaseApp | null = isFirebaseConfigured
+  ? initializeApp(firebaseConfig)
+  : null;
+export const firebaseAuth: Auth | null = firebaseApp ? getAuth(firebaseApp) : null;
 
 export const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({ prompt: "select_account" });

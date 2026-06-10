@@ -18,6 +18,7 @@ import {
 } from "firebase/auth";
 import {
   firebaseAuth,
+  isFirebaseConfigured,
   googleProvider,
   githubProvider,
   microsoftProvider,
@@ -92,6 +93,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!firebaseAuth) {
+      setUser(readDemo());
+      setLoading(false);
+      return;
+    }
+
     const unsub = onAuthStateChanged(firebaseAuth, (fbUser) => {
       const demo = readDemo();
       if (demo) {
@@ -105,6 +112,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signInWithSocial = async (id: SocialProviderId): Promise<User> => {
+    if (!firebaseAuth || !isFirebaseConfigured) {
+      throw new Error("Firebase sign-in is not configured for this environment.");
+    }
     clearDemo();
     const provider = providerMap[id];
     const result = await signInWithPopup(firebaseAuth, provider);
@@ -129,6 +139,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(demoUser);
       return demoUser;
     }
+    if (!firebaseAuth || !isFirebaseConfigured) {
+      throw new Error("Firebase email sign-in is not configured. Use the demo account for now.");
+    }
     const result = await signInWithEmailAndPassword(
       firebaseAuth,
       email,
@@ -142,6 +155,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     email: string,
     password: string,
   ): Promise<User> => {
+    if (!firebaseAuth || !isFirebaseConfigured) {
+      throw new Error("Firebase sign-up is not configured for this environment.");
+    }
     clearDemo();
     const result = await createUserWithEmailAndPassword(
       firebaseAuth,
@@ -159,6 +175,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Demo account — just succeed silently
       return;
     }
+    if (!firebaseAuth || !isFirebaseConfigured) {
+      throw new Error("Firebase password reset is not configured for this environment.");
+    }
     await fbSendPasswordResetEmail(firebaseAuth, email);
   };
 
@@ -169,7 +188,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
     clearDemo();
-    await fbSignOut(firebaseAuth);
+    if (firebaseAuth && isFirebaseConfigured) {
+      await fbSignOut(firebaseAuth);
+    }
+    setUser(null);
   };
 
   return (
