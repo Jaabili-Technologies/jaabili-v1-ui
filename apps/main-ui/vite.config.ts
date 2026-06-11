@@ -8,13 +8,7 @@ const workspaceRoot = path.resolve(import.meta.dirname, "..", "..");
 
 export default defineConfig(async ({ mode }) => {
   const env = loadEnv(mode, workspaceRoot, "");
-  const rawPort = process.env.PORT ?? env.PORT;
-
-  if (!rawPort) {
-    throw new Error(
-      "PORT environment variable is required but was not provided.",
-    );
-  }
+  const rawPort = process.env.PORT ?? env.PORT ?? "3000";
 
   const port = Number(rawPort);
 
@@ -22,13 +16,7 @@ export default defineConfig(async ({ mode }) => {
     throw new Error(`Invalid PORT value: "${rawPort}"`);
   }
 
-  const basePath = process.env.BASE_PATH ?? env.BASE_PATH;
-
-  if (!basePath) {
-    throw new Error(
-      "BASE_PATH environment variable is required but was not provided.",
-    );
-  }
+  const basePath = process.env.BASE_PATH ?? env.BASE_PATH ?? "/";
 
   return {
     envDir: workspaceRoot,

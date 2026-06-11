@@ -14,6 +14,18 @@ export interface OnboardingPrefs {
   salesOwner?: string;
   knowledgeSources?: string[];
   launchMode?: string;
+  workspaceType?: string;
+  aiExperience?: string;
+  workspaceOwnerEmail?: string;
+  automationGoals?: string[];
+  businessDescription?: string;
+  servicesOffered?: string;
+  commonQuestions?: string;
+  brandTone?: string;
+  selectedPlanName?: string;
+  couponCode?: string;
+  paymentGateway?: string;
+  paymentMode?: string;
   completed: true;
   completedAt: string;
 }

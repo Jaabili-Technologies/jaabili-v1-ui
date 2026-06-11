@@ -1,9 +1,11 @@
-import { Link, useLocation } from "wouter";
 import { useEffect, useState } from "react";
-import { ArrowLeft, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Link, useLocation } from "wouter";
+import { AlertCircle, ArrowLeft, CheckCircle2 } from "lucide-react";
 import logo from "@assets/jaabili_logo_clean.png";
-import { useAuth } from "@/lib/auth-context";
+import { OtpVerificationModal } from "@/components/auth/otp-verification-modal";
 import { SocialButtons } from "@/components/auth/social-buttons";
+import { useAuth } from "@/lib/auth-context";
+import { sendWelcomeEmail } from "@/lib/mail-api";
 
 export default function SignUp() {
   const [, setLocation] = useLocation();
@@ -13,6 +15,7 @@ export default function SignUp() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [otpOpen, setOtpOpen] = useState(false);
 
   useEffect(() => {
     if (!loading && user) setLocation("/onboarding");
@@ -21,20 +24,17 @@ export default function SignUp() {
   const meetsLength = password.length >= 8;
   const hasNumber = /\d/.test(password);
 
-  const handleSignUp = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const completeSignUp = async () => {
     setError(null);
-    if (!meetsLength) {
-      setError("Password must be at least 8 characters.");
-      return;
-    }
     setSubmitting(true);
     try {
-      await signUpWithEmail(name.trim(), email, password);
+      await signUpWithEmail(name, email, password);
+      void sendWelcomeEmail({ email, name, mode: "signup" });
+      setOtpOpen(false);
       setLocation("/onboarding");
     } catch (err: unknown) {
       const code = (err as { code?: string })?.code ?? "";
-      const friendly =
+      const message =
         code === "auth/email-already-in-use"
           ? "An account with this email already exists. Try signing in."
           : code === "auth/invalid-email"
@@ -44,179 +44,170 @@ export default function SignUp() {
               : err instanceof Error
                 ? err.message
                 : "Sign-up failed.";
-      setError(friendly);
+      setError(message);
     } finally {
       setSubmitting(false);
     }
   };
 
+  const handleSignUp = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setError(null);
+    if (!meetsLength) {
+      setError("Password must be at least 8 characters.");
+      return;
+    }
+    setOtpOpen(true);
+  };
+
   return (
-    <div className="min-h-[100dvh] flex flex-col md:flex-row bg-background">
-      {/* Left Brand Panel */}
-      <div className="hidden md:flex md:w-1/2 lg:w-[45%] bg-card border-r border-white/5 flex-col justify-between p-12 relative overflow-hidden">
-        <div className="absolute top-[-20%] left-[-20%] w-[80%] h-[80%] bg-accent/10 rounded-full blur-[100px] pointer-events-none" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[60%] h-[60%] bg-primary/10 rounded-full blur-[100px] pointer-events-none" />
-
-        <div className="relative z-10">
-          <Link
-            href="/"
-            className="inline-flex items-center gap-2 group mb-16 text-white/60 hover:text-white transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span className="text-sm">Back to home</span>
+    <main className="grid min-h-[100dvh] bg-[#080a0f] text-white lg:grid-cols-[1.02fr_0.98fr]">
+      <section className="relative hidden overflow-hidden border-r border-white/8 bg-[#10131b] p-10 lg:flex lg:flex-col lg:justify-between">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_24%,rgba(82,55,150,0.28),transparent_34%),radial-gradient(circle_at_74%_78%,rgba(20,184,166,0.16),transparent_32%)]" />
+        <div className="relative">
+          <Link href="/" className="mb-12 inline-flex items-center gap-2 text-sm text-white/55 transition hover:text-white">
+            <ArrowLeft className="h-4 w-4" />
+            Back to home
           </Link>
-
-          <div className="mb-12">
-            <img
-              src={logo}
-              alt="Jaabili Tech Solutions"
-              className="h-44 w-auto drop-shadow-[0_0_40px_rgba(20,184,166,0.45)]"
-            />
-          </div>
-
-          <h1 className="text-4xl lg:text-5xl font-display font-bold text-white tracking-tighter mb-6 leading-tight">
-            Create your <br />intelligent workspace.
+          <img src={logo} alt="Jaabili" className="mb-12 h-44 w-auto" />
+          <h1 className="max-w-xl text-5xl font-semibold leading-tight tracking-tight">
+            Create your intelligent workspace.
           </h1>
-          <p className="text-white/60 text-lg mb-12 max-w-md leading-relaxed">
+          <p className="mt-7 max-w-lg text-lg leading-8 text-white/55">
             Join the studios building the next generation of autonomous business
             systems with Jaabili.
           </p>
-
-          <div className="space-y-6">
-            {[
-              "Free 14-day trial — no card required",
-              "Bring your own LLM keys or use ours",
-              "Cancel anytime, your data stays yours",
-            ].map((feature, i) => (
-              <div key={i} className="flex items-center gap-4 text-white/80">
-                <CheckCircle2 className="w-5 h-5 text-primary" />
-                <span className="font-medium">{feature}</span>
-              </div>
-            ))}
-          </div>
         </div>
-
-        <div className="relative z-10 text-white/40 text-sm mt-12">
-          © {new Date().getFullYear()} Jaabili Tech Solutions.
+        <div className="relative space-y-4">
+          {[
+            "Free 14-day trial — no card required",
+            "Bring your own LLM keys or use ours",
+            "Cancel anytime, your data stays yours",
+          ].map((item) => (
+            <div key={item} className="flex items-center gap-3 text-sm text-white/72">
+              <CheckCircle2 className="h-4 w-4 text-[#6ee7d8]" />
+              {item}
+            </div>
+          ))}
         </div>
-      </div>
+      </section>
 
-      {/* Right Auth Panel */}
-      <div className="flex-1 flex flex-col items-center justify-center p-6 sm:p-12 relative">
-        <Link
-          href="/"
-          className="md:hidden absolute top-6 left-6 flex items-center gap-2"
-        >
-          <img src={logo} alt="Jaabili" className="h-10 w-auto drop-shadow-[0_0_12px_rgba(20,184,166,0.45)]" />
-        </Link>
+      <section className="flex items-center justify-center px-5 py-10">
+        <div className="w-full max-w-sm">
+          <Link href="/" className="mb-10 flex items-center gap-3 lg:hidden">
+            <img src={logo} alt="Jaabili" className="h-11 w-auto" />
+            <span className="font-semibold">Jaabili</span>
+          </Link>
 
-        <div className="w-full max-w-[420px]">
-          <div className="text-center md:text-left mb-8">
-            <h2 className="text-3xl font-display font-bold text-white tracking-tight mb-2">
-              Create your account
-            </h2>
-            <p className="text-white/60">
-              Start building agents in under a minute
-            </p>
+          <div className="mb-7">
+            <p className="mb-3 text-sm font-medium text-[#6ee7d8]">Create workspace</p>
+            <h2 className="text-3xl font-semibold tracking-tight">Create account</h2>
+            <p className="mt-3 text-sm leading-6 text-white/52">Start building agents in under a minute</p>
           </div>
 
           {error && (
-            <div className="flex items-start gap-3 p-3 mb-6 rounded-xl border border-destructive/30 bg-destructive/10 text-sm text-white/90">
-              <AlertCircle className="w-4 h-4 mt-0.5 text-destructive shrink-0" />
+            <div className="mb-5 flex items-start gap-3 rounded-2xl border border-red-400/25 bg-red-500/10 p-3 text-sm text-white/85">
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-300" />
               <span>{error}</span>
             </div>
           )}
 
-          <div className="mb-8">
-            <SocialButtons
-              onSuccess={() => setLocation("/onboarding")}
-              onError={(m) => setError(m)}
-            />
-          </div>
+          <SocialButtons
+            label="Continue with Google"
+            onSuccess={(signedInUser) => {
+              if (signedInUser.email) {
+                void sendWelcomeEmail({
+                  email: signedInUser.email,
+                  name: signedInUser.displayName ?? undefined,
+                  mode: "signup",
+                });
+              }
+              setLocation("/onboarding");
+            }}
+            onError={setError}
+          />
 
-          <div className="flex items-center gap-4 mb-8">
-            <div className="h-[1px] flex-1 bg-white/10" />
-            <span className="text-white/40 text-sm">or sign up with email</span>
-            <div className="h-[1px] flex-1 bg-white/10" />
+          <div className="my-6 flex items-center gap-3">
+            <div className="h-px flex-1 bg-white/10" />
+            <span className="text-xs text-white/36">or sign up with email</span>
+            <div className="h-px flex-1 bg-white/10" />
           </div>
 
           <form onSubmit={handleSignUp} className="space-y-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-white/80">Full name</label>
+            <label className="block">
+              <span className="mb-2 block text-sm font-medium text-white/72">Full name</span>
               <input
                 type="text"
                 required
                 autoComplete="name"
                 value={name}
-                onChange={(e) => setName(e.target.value)}
+                onChange={(event) => setName(event.target.value)}
                 placeholder="Saathvik Kalepu"
-                className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/30 focus:outline-none focus:border-primary transition-colors"
+                className="w-full rounded-2xl border border-white/10 bg-white/[0.045] px-4 py-3 text-sm text-white outline-none transition placeholder:text-white/28 focus:border-[#6ee7d8]/60"
               />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-white/80">Work email</label>
+            </label>
+
+            <label className="block">
+              <span className="mb-2 block text-sm font-medium text-white/72">Work email</span>
               <input
                 type="email"
                 required
                 autoComplete="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(event) => setEmail(event.target.value)}
                 placeholder="name@company.com"
-                className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/30 focus:outline-none focus:border-primary transition-colors"
+                className="w-full rounded-2xl border border-white/10 bg-white/[0.045] px-4 py-3 text-sm text-white outline-none transition placeholder:text-white/28 focus:border-[#6ee7d8]/60"
               />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-white/80">Password</label>
+            </label>
+
+            <label className="block">
+              <span className="mb-2 block text-sm font-medium text-white/72">Password</span>
               <input
                 type="password"
                 required
                 autoComplete="new-password"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(event) => setPassword(event.target.value)}
                 placeholder="At least 8 characters"
-                className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/30 focus:outline-none focus:border-primary transition-colors"
+                className="w-full rounded-2xl border border-white/10 bg-white/[0.045] px-4 py-3 text-sm text-white outline-none transition placeholder:text-white/28 focus:border-[#6ee7d8]/60"
               />
               {password.length > 0 && (
-                <div className="flex flex-wrap gap-3 text-xs pt-1">
-                  <span
-                    className={
-                      meetsLength ? "text-primary" : "text-white/40"
-                    }
-                  >
+                <div className="mt-2 flex flex-wrap gap-3 text-xs">
+                  <span className={meetsLength ? "text-[#6ee7d8]" : "text-white/38"}>
                     {meetsLength ? "✓" : "○"} 8+ characters
                   </span>
-                  <span
-                    className={hasNumber ? "text-primary" : "text-white/40"}
-                  >
+                  <span className={hasNumber ? "text-[#6ee7d8]" : "text-white/38"}>
                     {hasNumber ? "✓" : "○"} contains a number
                   </span>
                 </div>
               )}
-            </div>
+            </label>
+
             <button
               type="submit"
               disabled={submitting}
-              className="w-full bg-white text-black font-semibold rounded-xl py-3 px-4 hover:bg-white/90 disabled:opacity-60 disabled:cursor-not-allowed transition-colors mt-2"
+              className="w-full rounded-2xl bg-white px-4 py-3.5 text-sm font-semibold text-black transition hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {submitting ? "Creating account…" : "Create account"}
+              {submitting ? "Creating account..." : "Create account"}
             </button>
-            <p className="text-xs text-white/40 text-center pt-2">
-              By creating an account you agree to our Terms of Service and
-              Privacy Policy.
-            </p>
           </form>
 
-          <p className="text-center mt-8 text-white/60 text-sm">
+          <p className="mt-8 text-center text-sm text-white/55">
             Already on Jaabili?{" "}
-            <Link
-              href="/get-started"
-              className="text-white hover:underline underline-offset-4"
-            >
-              Sign in &rarr;
+            <Link href="/get-started" className="font-medium text-white hover:underline">
+              Sign in →
             </Link>
           </p>
         </div>
-      </div>
-    </div>
+      </section>
+      <OtpVerificationModal
+        open={otpOpen}
+        channel="email"
+        destination={email}
+        purpose="signup"
+        onClose={() => setOtpOpen(false)}
+        onVerified={completeSignUp}
+      />
+    </main>
   );
 }

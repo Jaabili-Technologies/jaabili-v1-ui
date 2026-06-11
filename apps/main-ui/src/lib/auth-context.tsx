@@ -7,27 +7,20 @@ import {
 } from "react";
 import {
   onAuthStateChanged,
-  signInWithPopup,
-  signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
-  signOut as fbSignOut,
   sendPasswordResetEmail as fbSendPasswordResetEmail,
+  signInWithEmailAndPassword,
+  signInWithPopup,
+  signOut as fbSignOut,
   updateProfile,
   type User,
-  type AuthProvider,
 } from "firebase/auth";
-import {
-  firebaseAuth,
-  isFirebaseConfigured,
-  googleProvider,
-  githubProvider,
-  microsoftProvider,
-  appleProvider,
-} from "./firebase";
+import { firebaseAuth, googleProvider, isFirebaseConfigured } from "./firebase";
+import { clearOnboarding } from "./onboarding";
 
-export type SocialProviderId = "google" | "github" | "microsoft" | "apple";
+export type SocialProviderId = "google";
 
-const DEMO_EMAIL = "demo@jaabili.studio";
+const DEMO_EMAIL = "saathvikk202@gmail.com";
 const DEMO_PASSWORD = "demo1234";
 const DEMO_KEY = "jaabili_demo_user";
 
@@ -44,24 +37,13 @@ interface AuthContextValue {
   user: AuthUser | null;
   loading: boolean;
   signInWithSocial: (id: SocialProviderId) => Promise<User>;
-  signInWithEmail: (email: string, password: string) => Promise<AuthUser>;
-  signUpWithEmail: (
-    name: string,
-    email: string,
-    password: string,
-  ) => Promise<User>;
+  signInWithEmail: (email: string, password: string) => Promise<User>;
+  signUpWithEmail: (name: string, email: string, password: string) => Promise<User>;
   sendPasswordResetEmail: (email: string) => Promise<void>;
   signOut: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
-
-const providerMap: Record<SocialProviderId, AuthProvider> = {
-  google: googleProvider,
-  github: githubProvider,
-  microsoft: microsoftProvider,
-  apple: appleProvider,
-};
 
 function readDemo(): DemoUser | null {
   if (typeof window === "undefined") return null;
@@ -69,22 +51,21 @@ function readDemo(): DemoUser | null {
     const raw = window.localStorage.getItem(DEMO_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as DemoUser;
-    if (parsed?.isDemo) return parsed;
-    return null;
+    return parsed?.isDemo ? parsed : null;
   } catch {
     return null;
-  }
-}
-
-function writeDemo(u: DemoUser) {
-  if (typeof window !== "undefined") {
-    window.localStorage.setItem(DEMO_KEY, JSON.stringify(u));
   }
 }
 
 function clearDemo() {
   if (typeof window !== "undefined") {
     window.localStorage.removeItem(DEMO_KEY);
+  }
+}
+
+function writeDemo(user: DemoUser) {
+  if (typeof window !== "undefined") {
+    window.localStorage.setItem(DEMO_KEY, JSON.stringify(user));
   }
 }
 
@@ -100,35 +81,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     const unsub = onAuthStateChanged(firebaseAuth, (fbUser) => {
-      const demo = readDemo();
-      if (demo) {
-        setUser(demo);
-      } else {
-        setUser(fbUser);
-      }
+      setUser(readDemo() ?? fbUser);
       setLoading(false);
     });
+
     return () => unsub();
   }, []);
 
   const signInWithSocial = async (id: SocialProviderId): Promise<User> => {
-    if (!firebaseAuth || !isFirebaseConfigured) {
-      throw new Error("Firebase sign-in is not configured for this environment.");
+    if (id !== "google") {
+      throw new Error("Only Google sign-in is enabled for now.");
     }
+    if (!firebaseAuth || !isFirebaseConfigured) {
+      throw new Error("Firebase Google sign-in is not configured for this environment.");
+    }
+
     clearDemo();
-    const provider = providerMap[id];
-    const result = await signInWithPopup(firebaseAuth, provider);
+    const result = await signInWithPopup(firebaseAuth, googleProvider);
+    setUser(result.user);
     return result.user;
   };
 
-  const signInWithEmail = async (
-    email: string,
-    password: string,
-  ): Promise<AuthUser> => {
-    if (
-      email.trim().toLowerCase() === DEMO_EMAIL &&
-      password === DEMO_PASSWORD
-    ) {
+  const signInWithEmail = async (email: string, password: string): Promise<User> => {
+    if (email.trim().toLowerCase() === DEMO_EMAIL && password === DEMO_PASSWORD) {
+      clearOnboarding();
       const demoUser: DemoUser = {
         uid: "demo-user",
         email: DEMO_EMAIL,
@@ -137,16 +113,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       };
       writeDemo(demoUser);
       setUser(demoUser);
-      return demoUser;
+      return demoUser as unknown as User;
     }
+
     if (!firebaseAuth || !isFirebaseConfigured) {
-      throw new Error("Firebase email sign-in is not configured. Use the demo account for now.");
+      throw new Error("Firebase email sign-in is not configured for this environment.");
     }
-    const result = await signInWithEmailAndPassword(
-      firebaseAuth,
-      email,
-      password,
-    );
+
+    clearDemo();
+    const result = await signInWithEmailAndPassword(firebaseAuth, email, password);
+    setUser(result.user);
     return result.user;
   };
 
@@ -158,23 +134,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!firebaseAuth || !isFirebaseConfigured) {
       throw new Error("Firebase sign-up is not configured for this environment.");
     }
+
     clearDemo();
-    const result = await createUserWithEmailAndPassword(
-      firebaseAuth,
-      email,
-      password,
-    );
-    if (name) {
-      await updateProfile(result.user, { displayName: name });
+    const result = await createUserWithEmailAndPassword(firebaseAuth, email, password);
+    if (name.trim()) {
+      await updateProfile(result.user, { displayName: name.trim() });
     }
+    setUser(result.user);
     return result.user;
   };
 
   const sendPasswordResetEmail = async (email: string) => {
-    if (email.trim().toLowerCase() === DEMO_EMAIL) {
-      // Demo account — just succeed silently
-      return;
-    }
     if (!firebaseAuth || !isFirebaseConfigured) {
       throw new Error("Firebase password reset is not configured for this environment.");
     }
@@ -182,11 +152,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
-    if (user && (user as DemoUser).isDemo) {
-      clearDemo();
-      setUser(null);
-      return;
-    }
     clearDemo();
     if (firebaseAuth && isFirebaseConfigured) {
       await fbSignOut(firebaseAuth);
@@ -211,13 +176,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 }
 
+export const DEMO_CREDENTIALS = {
+  email: DEMO_EMAIL,
+  password: DEMO_PASSWORD,
+};
+
 export function useAuth(): AuthContextValue {
   const ctx = useContext(AuthContext);
   if (!ctx) throw new Error("useAuth must be used inside <AuthProvider>");
   return ctx;
 }
-
-export const DEMO_CREDENTIALS = {
-  email: DEMO_EMAIL,
-  password: DEMO_PASSWORD,
-};

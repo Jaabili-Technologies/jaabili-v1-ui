@@ -247,14 +247,14 @@ export default function Home() {
 
       // Reveal-up (no blur, only-once)
       gsap.utils.toArray<HTMLElement>(".reveal-up").forEach((elem) => {
-        gsap.fromTo(
+        gsap.from(
           elem,
-          { y: 32, opacity: 0 },
           {
-            y: 0,
-            opacity: 1,
+            y: 32,
+            opacity: 0,
             duration: 0.9,
             ease: "power3.out",
+            immediateRender: false,
             scrollTrigger: {
               trigger: elem,
               start: "top 88%",
@@ -266,15 +266,15 @@ export default function Home() {
       });
 
       // Flash cards staggered grid
-      gsap.fromTo(
+      gsap.from(
         ".flash-card-item",
-        { y: 40, opacity: 0 },
         {
-          y: 0,
-          opacity: 1,
+          y: 40,
+          opacity: 0,
           duration: 0.7,
           stagger: 0.08,
           ease: "power3.out",
+          immediateRender: false,
           scrollTrigger: {
             trigger: ".flash-cards-grid",
             start: "top 85%",
@@ -284,15 +284,15 @@ export default function Home() {
       );
 
       // Bento staggered
-      gsap.fromTo(
+      gsap.from(
         ".bento-item",
-        { y: 36, opacity: 0 },
         {
-          y: 0,
-          opacity: 1,
+          y: 36,
+          opacity: 0,
           duration: 0.75,
           stagger: 0.08,
           ease: "power3.out",
+          immediateRender: false,
           scrollTrigger: {
             trigger: ".bento-grid",
             start: "top 85%",

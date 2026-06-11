@@ -137,6 +137,14 @@
     @apply border-border;
   }
 
+  html.jaabili-no-page-scroll,
+  html.jaabili-no-page-scroll body,
+  html.jaabili-no-page-scroll #root {
+    height: 100%;
+    overflow: hidden;
+    overscroll-behavior: none;
+  }
+
   body {
     @apply font-sans antialiased bg-background text-foreground overflow-x-hidden;
     background-image: 
@@ -161,6 +169,45 @@
 
 .glass-panel {
   @apply bg-card/40 backdrop-blur-xl border border-white/10 shadow-2xl;
+}
+
+.jaabili-input {
+  width: 100%;
+  border-radius: 1rem;
+  border: 1px solid rgb(255 255 255 / 0.1);
+  background: rgb(255 255 255 / 0.045);
+  padding: 0.8rem 1rem;
+  color: white;
+  outline: none;
+  transition:
+    border-color 160ms ease,
+    background-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.jaabili-input::placeholder {
+  color: rgb(255 255 255 / 0.3);
+}
+
+.jaabili-input:focus {
+  border-color: rgb(110 231 216 / 0.62);
+  background: rgb(255 255 255 / 0.065);
+  box-shadow: 0 0 0 4px rgb(110 231 216 / 0.08);
+}
+
+select.jaabili-input {
+  color-scheme: dark;
+  cursor: pointer;
+}
+
+select.jaabili-input option {
+  background: #0b1a2a;
+  color: #f8fafc;
+}
+
+select.jaabili-input option:checked {
+  background: #123848;
+  color: #ffffff;
 }
 
 @keyframes jaabili-mandala-spin {

@@ -24,27 +24,12 @@ import SignUp from "@/pages/sign-up";
 import Onboarding from "@/pages/onboarding";
 import Dashboard from "@/pages/dashboard";
 import WebsiteSalesAgentPage from "@/pages/website-sales-agent";
+import Terms from "@/pages/terms";
+import Privacy from "@/pages/privacy";
+import PaymentResult from "@/pages/payment-result";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient();
-
-const PageWrapper = ({ children }: { children: React.ReactNode }) => {
-  const [location] = useLocation();
-  return (
-    <AnimatePresence mode="wait">
-      <motion.div
-        key={location}
-        initial={{ opacity: 0, filter: "blur(10px)" }}
-        animate={{ opacity: 1, filter: "blur(0px)" }}
-        exit={{ opacity: 0, filter: "blur(10px)" }}
-        transition={{ duration: 0.4, ease: "easeInOut" }}
-        className="min-h-[100dvh] flex flex-col"
-      >
-        {children}
-      </motion.div>
-    </AnimatePresence>
-  );
-};
 
 const FULLSCREEN_ROUTES = [
   "/get-started",
@@ -53,18 +38,63 @@ const FULLSCREEN_ROUTES = [
   "/dashboard",
   "/dashboard/agents/website-sales",
   "/agents/website-sales",
+  "/terms",
+  "/privacy",
+  "/payment/success",
+  "/payment/failure",
+  "/payment/pending",
 ];
+
+const PageWrapper = ({ children }: { children: React.ReactNode }) => {
+  const [location] = useLocation();
+  const isFullscreen = FULLSCREEN_ROUTES.some((p) => location.startsWith(p));
+
+  return (
+    <AnimatePresence mode="wait">
+      <motion.div
+        key={location}
+        initial={{ opacity: 0, filter: "blur(10px)" }}
+        animate={{ opacity: 1, filter: "blur(0px)" }}
+        exit={{ opacity: 0, filter: "blur(10px)" }}
+        transition={{ duration: 0.4, ease: "easeInOut" }}
+        className={
+          isFullscreen
+            ? "flex h-full min-h-0 flex-col overflow-hidden"
+            : "flex min-h-[100dvh] flex-col"
+        }
+      >
+        {children}
+      </motion.div>
+    </AnimatePresence>
+  );
+};
 
 function Router() {
   const [location] = useLocation();
   const isFullscreen = FULLSCREEN_ROUTES.some((p) => location.startsWith(p));
 
+  useEffect(() => {
+    document.documentElement.classList.toggle("jaabili-no-page-scroll", isFullscreen);
+    document.body.classList.toggle("jaabili-no-page-scroll", isFullscreen);
+
+    return () => {
+      document.documentElement.classList.remove("jaabili-no-page-scroll");
+      document.body.classList.remove("jaabili-no-page-scroll");
+    };
+  }, [isFullscreen]);
+
   return (
-    <div className="flex flex-col min-h-screen">
+    <div
+      className={
+        isFullscreen
+          ? "flex h-[100dvh] min-h-0 flex-col overflow-hidden"
+          : "flex min-h-screen flex-col"
+      }
+    >
       <ScrollToTopOnRoute />
       <BackToTop />
       {!isFullscreen && <Navbar />}
-      <main className="flex-1">
+      <main className={isFullscreen ? "min-h-0 flex-1 overflow-hidden" : "flex-1"}>
         <PageWrapper>
           <Switch>
             <Route path="/" component={Home} />
@@ -77,6 +107,17 @@ function Router() {
             <Route path="/pricing" component={Pricing} />
             <Route path="/about" component={About} />
             <Route path="/contact" component={Contact} />
+            <Route path="/terms" component={Terms} />
+            <Route path="/privacy" component={Privacy} />
+            <Route path="/payment/success">
+              <PaymentResult status="success" />
+            </Route>
+            <Route path="/payment/failure">
+              <PaymentResult status="failure" />
+            </Route>
+            <Route path="/payment/pending">
+              <PaymentResult status="pending" />
+            </Route>
             <Route path="/get-started" component={GetStarted} />
             <Route path="/sign-up" component={SignUp} />
             <Route path="/onboarding">

@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { Link } from "wouter";
 import {
   Bot,
@@ -101,10 +108,25 @@ type CompanyOnboardingDraft = {
   companyName: string;
   websiteUrl: string;
   industry: string;
+  businessModel: string;
   targetCustomers: string;
+  idealLead: string;
   primaryOffer: string;
   salesGoal: string;
   averageOrderValue: string;
+  salesCycle: string;
+  qualificationRules: string;
+  commonObjections: string;
+  competitors: string;
+  brandVoice: string;
+  promoAssets: string;
+  offersAndCampaigns: string;
+  constraints: string;
+  handoffRules: string;
+  crmNotes: string;
+  workingHours: string;
+  escalationRules: string;
+  consentNotes: string;
   serviceLocations: string;
   currentChannels: string;
   contactEmail: string;
@@ -3462,65 +3484,171 @@ function CompanyOnboardingDrawer({
               </div>
             )}
 
-            <div className="grid gap-3 sm:grid-cols-2">
-              <InputRow
-                label="Company name"
-                value={draft.companyName}
-                onChange={(companyName) => update({ companyName })}
+            <OnboardingFieldGroup
+              title="Business identity"
+              description="Basic information Jaabili uses to understand what the company sells and where it operates."
+            >
+              <div className="grid gap-3 sm:grid-cols-2">
+                <InputRow
+                  label="Company name"
+                  value={draft.companyName}
+                  onChange={(companyName) => update({ companyName })}
+                />
+                <InputRow
+                  label="Website"
+                  value={draft.websiteUrl}
+                  onChange={(websiteUrl) => update({ websiteUrl })}
+                />
+                <InputRow
+                  label="Industry"
+                  value={draft.industry}
+                  onChange={(industry) => update({ industry })}
+                />
+                <InputRow
+                  label="Business model"
+                  value={draft.businessModel}
+                  onChange={(businessModel) => update({ businessModel })}
+                />
+                <InputRow
+                  label="Service locations"
+                  value={draft.serviceLocations}
+                  onChange={(serviceLocations) => update({ serviceLocations })}
+                />
+                <InputRow
+                  label="Average order value"
+                  value={draft.averageOrderValue}
+                  onChange={(averageOrderValue) => update({ averageOrderValue })}
+                />
+              </div>
+            </OnboardingFieldGroup>
+
+            <OnboardingFieldGroup
+              title="Sales strategy"
+              description="Tell the agent who to sell to, what matters, and what success means."
+            >
+              <TextAreaRow
+                label="Target customers"
+                value={draft.targetCustomers}
+                onChange={(targetCustomers) => update({ targetCustomers })}
               />
-              <InputRow
-                label="Website"
-                value={draft.websiteUrl}
-                onChange={(websiteUrl) => update({ websiteUrl })}
+              <TextAreaRow
+                label="Ideal qualified lead"
+                value={draft.idealLead}
+                onChange={(idealLead) => update({ idealLead })}
               />
-              <InputRow
-                label="Industry"
-                value={draft.industry}
-                onChange={(industry) => update({ industry })}
+              <TextAreaRow
+                label="Primary offer"
+                value={draft.primaryOffer}
+                onChange={(primaryOffer) => update({ primaryOffer })}
               />
-              <InputRow
-                label="Service locations"
-                value={draft.serviceLocations}
-                onChange={(serviceLocations) => update({ serviceLocations })}
+              <TextAreaRow
+                label="Sales goal"
+                value={draft.salesGoal}
+                onChange={(salesGoal) => update({ salesGoal })}
               />
-              <InputRow
-                label="Contact email"
-                value={draft.contactEmail}
-                onChange={(contactEmail) => update({ contactEmail })}
+              <div className="grid gap-3 sm:grid-cols-2">
+                <InputRow
+                  label="Sales cycle"
+                  value={draft.salesCycle}
+                  onChange={(salesCycle) => update({ salesCycle })}
+                />
+                <InputRow
+                  label="Current channels"
+                  value={draft.currentChannels}
+                  onChange={(currentChannels) => update({ currentChannels })}
+                />
+              </div>
+            </OnboardingFieldGroup>
+
+            <OnboardingFieldGroup
+              title="Buyer intelligence"
+              description="This helps Jaabili answer objections and qualify serious buyers instead of just replying."
+            >
+              <TextAreaRow
+                label="Qualification rules"
+                value={draft.qualificationRules}
+                onChange={(qualificationRules) => update({ qualificationRules })}
               />
-              <InputRow
-                label="Contact phone"
-                value={draft.contactPhone}
-                onChange={(contactPhone) => update({ contactPhone })}
+              <TextAreaRow
+                label="Common objections"
+                value={draft.commonObjections}
+                onChange={(commonObjections) => update({ commonObjections })}
               />
-            </div>
-            <TextAreaRow
-              label="Target customers"
-              value={draft.targetCustomers}
-              onChange={(targetCustomers) => update({ targetCustomers })}
-            />
-            <TextAreaRow
-              label="Primary offer"
-              value={draft.primaryOffer}
-              onChange={(primaryOffer) => update({ primaryOffer })}
-            />
-            <TextAreaRow
-              label="Sales goal"
-              value={draft.salesGoal}
-              onChange={(salesGoal) => update({ salesGoal })}
-            />
-            <div className="grid gap-3 sm:grid-cols-2">
-              <InputRow
-                label="Average order value"
-                value={draft.averageOrderValue}
-                onChange={(averageOrderValue) => update({ averageOrderValue })}
+              <TextAreaRow
+                label="Competitors or alternatives"
+                value={draft.competitors}
+                onChange={(competitors) => update({ competitors })}
               />
-              <InputRow
-                label="Current channels"
-                value={draft.currentChannels}
-                onChange={(currentChannels) => update({ currentChannels })}
+            </OnboardingFieldGroup>
+
+            <OnboardingFieldGroup
+              title="Brand and campaigns"
+              description="Give current promos, assets, voice, and boundaries so responses feel like the company."
+            >
+              <TextAreaRow
+                label="Brand voice"
+                value={draft.brandVoice}
+                onChange={(brandVoice) => update({ brandVoice })}
               />
-            </div>
+              <TextAreaRow
+                label="Promo assets"
+                value={draft.promoAssets}
+                onChange={(promoAssets) => update({ promoAssets })}
+              />
+              <TextAreaRow
+                label="Offers and campaigns"
+                value={draft.offersAndCampaigns}
+                onChange={(offersAndCampaigns) => update({ offersAndCampaigns })}
+              />
+              <TextAreaRow
+                label="Confidentiality and restrictions"
+                value={draft.constraints}
+                onChange={(constraints) => update({ constraints })}
+              />
+            </OnboardingFieldGroup>
+
+            <OnboardingFieldGroup
+              title="Operations and handoff"
+              description="Define when Jaabili should capture, escalate, route, and stop."
+            >
+              <div className="grid gap-3 sm:grid-cols-2">
+                <InputRow
+                  label="Contact email"
+                  value={draft.contactEmail}
+                  onChange={(contactEmail) => update({ contactEmail })}
+                />
+                <InputRow
+                  label="Contact phone"
+                  value={draft.contactPhone}
+                  onChange={(contactPhone) => update({ contactPhone })}
+                />
+                <InputRow
+                  label="Working hours"
+                  value={draft.workingHours}
+                  onChange={(workingHours) => update({ workingHours })}
+                />
+                <InputRow
+                  label="CRM or lead sheet"
+                  value={draft.crmNotes}
+                  onChange={(crmNotes) => update({ crmNotes })}
+                />
+              </div>
+              <TextAreaRow
+                label="Handoff rules"
+                value={draft.handoffRules}
+                onChange={(handoffRules) => update({ handoffRules })}
+              />
+              <TextAreaRow
+                label="Escalation rules"
+                value={draft.escalationRules}
+                onChange={(escalationRules) => update({ escalationRules })}
+              />
+              <TextAreaRow
+                label="Consent notes"
+                value={draft.consentNotes}
+                onChange={(consentNotes) => update({ consentNotes })}
+              />
+            </OnboardingFieldGroup>
           </section>
 
           <section className="mt-4 rounded-3xl border border-white/8 bg-[#111]/80 p-4">
@@ -4274,6 +4402,28 @@ function InputRow({
   );
 }
 
+function OnboardingFieldGroup({
+  title,
+  description,
+  children,
+}: {
+  title: string;
+  description: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="mb-4 rounded-2xl border border-white/8 bg-black/16 p-3">
+      <div className="mb-3">
+        <div className="text-xs font-semibold uppercase tracking-[0.14em] text-white/50">
+          {title}
+        </div>
+        <div className="mt-1 text-xs leading-5 text-white/36">{description}</div>
+      </div>
+      {children}
+    </div>
+  );
+}
+
 function TextAreaRow({
   label,
   value,
@@ -4361,10 +4511,25 @@ function createCompanyDraft(
     companyName: input.companyName ?? "",
     websiteUrl: input.websiteUrl ?? "",
     industry: input.industry ?? "",
+    businessModel: input.businessModel ?? "",
     targetCustomers: input.targetCustomers ?? "",
+    idealLead: input.idealLead ?? "",
     primaryOffer: input.primaryOffer ?? "",
     salesGoal: input.salesGoal ?? "Increase qualified website leads and sales conversations",
     averageOrderValue: input.averageOrderValue ?? "",
+    salesCycle: input.salesCycle ?? "",
+    qualificationRules: input.qualificationRules ?? "",
+    commonObjections: input.commonObjections ?? "",
+    competitors: input.competitors ?? "",
+    brandVoice: input.brandVoice ?? "Clear, helpful, consultative, and conversion-focused",
+    promoAssets: input.promoAssets ?? "",
+    offersAndCampaigns: input.offersAndCampaigns ?? "",
+    constraints: input.constraints ?? "",
+    handoffRules: input.handoffRules ?? "",
+    crmNotes: input.crmNotes ?? "",
+    workingHours: input.workingHours ?? "",
+    escalationRules: input.escalationRules ?? "",
+    consentNotes: input.consentNotes ?? "",
     serviceLocations: input.serviceLocations ?? "",
     currentChannels: input.currentChannels ?? "website, WhatsApp, email",
     contactEmail: input.contactEmail ?? "",
@@ -4386,9 +4551,31 @@ function companyDraftToProfile(
     primaryOffer:
       draft.primaryOffer.trim() ||
       "Company products or services from approved sources",
-    salesGoal:
+    salesGoal: [
       draft.salesGoal.trim() ||
-      "Increase qualified website leads and sales conversations",
+        "Increase qualified website leads and sales conversations",
+      draft.businessModel.trim() && `Business model: ${draft.businessModel.trim()}`,
+      draft.idealLead.trim() && `Ideal lead: ${draft.idealLead.trim()}`,
+      draft.salesCycle.trim() && `Sales cycle: ${draft.salesCycle.trim()}`,
+      draft.qualificationRules.trim() &&
+        `Qualification rules: ${draft.qualificationRules.trim()}`,
+      draft.commonObjections.trim() &&
+        `Common objections: ${draft.commonObjections.trim()}`,
+      draft.competitors.trim() && `Competitors/alternatives: ${draft.competitors.trim()}`,
+      draft.brandVoice.trim() && `Brand voice: ${draft.brandVoice.trim()}`,
+      draft.promoAssets.trim() && `Promo assets: ${draft.promoAssets.trim()}`,
+      draft.offersAndCampaigns.trim() &&
+        `Offers/campaigns: ${draft.offersAndCampaigns.trim()}`,
+      draft.constraints.trim() && `Do not do: ${draft.constraints.trim()}`,
+      draft.handoffRules.trim() && `Handoff rules: ${draft.handoffRules.trim()}`,
+      draft.crmNotes.trim() && `CRM notes: ${draft.crmNotes.trim()}`,
+      draft.workingHours.trim() && `Working hours: ${draft.workingHours.trim()}`,
+      draft.escalationRules.trim() &&
+        `Escalation rules: ${draft.escalationRules.trim()}`,
+      draft.consentNotes.trim() && `Consent notes: ${draft.consentNotes.trim()}`,
+    ]
+      .filter(Boolean)
+      .join("\n"),
     averageOrderValue: draft.averageOrderValue.trim() || undefined,
     serviceLocations: draft.serviceLocations.trim() || undefined,
     currentChannels: draft.currentChannels
