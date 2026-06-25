@@ -26,6 +26,7 @@ export interface OnboardingPrefs {
   couponCode?: string;
   paymentGateway?: string;
   paymentMode?: string;
+  paymentProvider?: string;
   completed: true;
   completedAt: string;
 }

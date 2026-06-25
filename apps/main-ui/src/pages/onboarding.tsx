@@ -311,6 +311,7 @@ export default function Onboarding() {
   const [selectedPlan, setSelectedPlan] = useState("growth");
   const [couponCode, setCouponCode] = useState("");
   const [paymentMode, setPaymentMode] = useState<"trial" | "gateway">("trial");
+  const [paymentProvider, setPaymentProvider] = useState<"pine-labs">("pine-labs");
   const [buildIndex, setBuildIndex] = useState(0);
   const [draftConsent, setDraftConsent] = useState(false);
   const [termsConsent, setTermsConsent] = useState(false);
@@ -443,8 +444,9 @@ export default function Onboarding() {
       brandTone: activeType === "personal" ? form.personalOutputStyle : form.tone,
       selectedPlanName: plan.name,
       couponCode: couponCode.trim(),
-      paymentGateway: paymentMode === "gateway" ? "pine-labs-plural" : "trial",
+      paymentGateway: paymentMode === "gateway" ? paymentProvider : "trial",
       paymentMode,
+      paymentProvider,
       aiExperience: experience,
       workspaceOwnerEmail: ownerEmail,
     });
@@ -463,6 +465,7 @@ export default function Onboarding() {
           customer: {
             name: ownerName,
             email: ownerEmail,
+            phone: "9876543210",
           },
         });
         const checkoutUrl = extractCheckoutUrl(checkout);
@@ -586,6 +589,8 @@ export default function Onboarding() {
                   setCouponCode={setCouponCode}
                   paymentMode={paymentMode}
                   setPaymentMode={setPaymentMode}
+                  paymentProvider={paymentProvider}
+                  setPaymentProvider={setPaymentProvider}
                   recommendedAgents={recommendedAgents}
                 />
               )}
@@ -630,7 +635,7 @@ export default function Onboarding() {
                 )}
               >
                 {step === 5 && paymentMode === "gateway"
-                  ? "Proceed to checkout"
+                  ? "Continue to payment"
                   : step === 7
                     ? "Create Workspace & Dashboard"
                     : "Continue"}
@@ -1179,6 +1184,8 @@ function PlanStep({
   setCouponCode,
   paymentMode,
   setPaymentMode,
+  paymentProvider,
+  setPaymentProvider,
   recommendedAgents,
 }: {
   selectedPlan: string;
@@ -1187,6 +1194,8 @@ function PlanStep({
   setCouponCode: (value: string) => void;
   paymentMode: "trial" | "gateway";
   setPaymentMode: (value: "trial" | "gateway") => void;
+  paymentProvider: "pine-labs";
+  setPaymentProvider: (value: "pine-labs") => void;
   recommendedAgents: string[];
 }) {
   return (
@@ -1246,11 +1255,12 @@ function PlanStep({
         })}
       </div>
 
-      <div className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
-        <div className="rounded-3xl border border-[#9fb8d7]/14 bg-[#111d2f] p-5">
-          <div className="text-sm font-semibold text-white/78">Coupon code</div>
-          <p className="mt-1 text-xs text-[#c9d5ef]/48">Optional. Leave empty if the customer has no code.</p>
-          <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+      <div className="mt-5 rounded-3xl border border-[#9fb8d7]/14 bg-[#111d2f] p-5">
+        <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(360px,0.7fr)]">
+          <div>
+            <div className="text-sm font-semibold text-white/78">Coupon code</div>
+            <p className="mt-1 text-xs text-[#c9d5ef]/48">Optional. Apply only if you have a Jaabili offer code.</p>
+            <div className="mt-4 flex flex-col gap-3 sm:flex-row">
             <input
               value={couponCode}
               onChange={(event) => setCouponCode(event.target.value.toUpperCase())}
@@ -1263,32 +1273,57 @@ function PlanStep({
             >
               Apply
             </button>
+            </div>
           </div>
-        </div>
 
-        <div className="rounded-3xl border border-[#9fb8d7]/14 bg-[#111d2f] p-5">
-          <div className="text-sm font-semibold text-white/78">Payment</div>
-          <p className="mt-1 text-xs text-[#c9d5ef]/48">Start free or connect Pine Labs test checkout.</p>
-          <div className="mt-4 grid gap-2">
-            {[
-              { id: "trial", label: "Start free trial", body: "No payment now" },
-              { id: "gateway", label: "Pine Labs checkout", body: "Use sandbox credentials" },
-            ].map((option) => (
-              <button
-                key={option.id}
-                type="button"
-                onClick={() => setPaymentMode(option.id as "trial" | "gateway")}
-                className={cn(
-                  "rounded-2xl border px-4 py-3 text-left transition",
-                  paymentMode === option.id
-                    ? "border-[#55e7ff]/45 bg-[#0f3440]"
-                    : "border-[#9fb8d7]/14 bg-black/16 hover:border-[#9fb8d7]/28",
-                )}
-              >
-                <div className="text-sm font-semibold">{option.label}</div>
-                <div className="mt-1 text-xs text-[#c9d5ef]/48">{option.body}</div>
-              </button>
-            ))}
+          <div>
+            <div className="text-sm font-semibold text-white/78">Payment method</div>
+            <p className="mt-1 text-xs text-[#c9d5ef]/48">Choose how you want to activate this plan.</p>
+            <div className="mt-4 grid gap-2 sm:grid-cols-3 lg:grid-cols-1">
+            <button
+              type="button"
+              onClick={() => setPaymentMode("trial")}
+              className={cn(
+                "flex min-h-14 items-center justify-between rounded-2xl border px-4 py-3 text-left transition",
+                paymentMode === "trial"
+                  ? "border-[#55e7ff]/45 bg-[#0f3440]"
+                  : "border-[#9fb8d7]/14 bg-black/16 hover:border-[#9fb8d7]/28",
+              )}
+            >
+              <span className="text-sm font-semibold">Free trial</span>
+              <span className="text-xs text-[#c9d5ef]/48">14 days</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setPaymentProvider("pine-labs");
+                setPaymentMode("gateway");
+              }}
+              className={cn(
+                "flex min-h-14 items-center justify-between rounded-2xl border px-4 py-3 text-left transition",
+                paymentMode === "gateway" && paymentProvider === "pine-labs"
+                  ? "border-[#55e7ff]/55 bg-[#0f3440] shadow-[0_0_0_1px_rgba(85,231,255,0.18)]"
+                  : "border-[#9fb8d7]/14 bg-black/16 hover:border-[#9fb8d7]/28",
+              )}
+            >
+              <span className="rounded-lg bg-white px-3 py-1.5">
+                <img src="/assets/logos/pinelab.svg" alt="Pine Labs" className="h-5 w-auto" />
+              </span>
+              <span className="text-xs font-semibold text-[#9afcf1]">Pay now</span>
+            </button>
+
+            <button
+              type="button"
+              disabled
+              className="flex min-h-14 items-center justify-between rounded-2xl border border-[#9fb8d7]/10 bg-black/10 px-4 py-3 text-left opacity-55"
+            >
+              <span className="rounded-lg bg-white px-3 py-1.5">
+                <img src="/assets/logos/razorpay.png" alt="Razorpay" className="h-5 w-auto" />
+              </span>
+              <span className="text-xs text-white/45">Soon</span>
+            </button>
+            </div>
           </div>
         </div>
       </div>
