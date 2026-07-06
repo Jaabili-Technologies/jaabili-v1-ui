@@ -76,13 +76,13 @@ export default function About() {
       <div className="container mx-auto px-6 max-w-5xl">
         {/* Headline */}
         <div className="mb-20">
-          <h1 className="text-4xl md:text-6xl lg:text-7xl text-white font-display font-semibold tracking-tight leading-[1.05] mb-8 reveal-up">
+          <h1 className="text-4xl md:text-6xl lg:text-7xl text-foreground font-display font-semibold tracking-tight leading-[1.05] mb-8 reveal-up">
             We build the AI{" "}
             <span className="text-primary">infrastructure</span>
             <br />
             other teams wish they had.
           </h1>
-          <p className="text-lg md:text-xl text-white/60 max-w-3xl leading-relaxed font-light reveal-up">
+          <p className="text-lg md:text-xl text-foreground/60 max-w-3xl leading-relaxed font-light reveal-up">
             Jaabili Tech Solutions is an Agentic AI studio. We design, build,
             and operate intelligent agent platforms for businesses that want to
             move faster — across sales, support, marketing, and the long tail
@@ -96,11 +96,11 @@ export default function About() {
             <div className="text-xs text-primary uppercase tracking-[0.22em] font-semibold mb-4">
               Our story
             </div>
-            <h2 className="text-2xl md:text-3xl font-display font-semibold text-white tracking-tight leading-snug">
+            <h2 className="text-2xl md:text-3xl font-display font-semibold text-foreground tracking-tight leading-snug">
               A small studio with a strong opinion about how AI should ship.
             </h2>
           </div>
-          <div className="md:col-span-7 space-y-5 text-white/70 text-base md:text-lg leading-relaxed reveal-up">
+          <div className="md:col-span-7 space-y-5 text-foreground/70 text-base md:text-lg leading-relaxed reveal-up">
             <p>
               Jaabili Tech Solutions was founded with a simple frustration:
               every business is being told to "use AI", but most of the
@@ -123,16 +123,16 @@ export default function About() {
         </div>
 
         {/* Numbers */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-white/10 rounded-2xl overflow-hidden mb-24 reveal-up">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-foreground/10 rounded-2xl overflow-hidden mb-24 reveal-up">
           {NUMBERS.map((n, i) => (
             <div
               key={i}
               className="bg-card/40 backdrop-blur-sm p-8 text-center md:text-left"
             >
-              <div className="text-2xl md:text-3xl font-display font-semibold text-white tracking-tight mb-2">
+              <div className="text-2xl md:text-3xl font-display font-semibold text-foreground tracking-tight mb-2">
                 {n.figure}
               </div>
-              <div className="text-white/55 text-sm">{n.label}</div>
+              <div className="text-foreground/55 text-sm">{n.label}</div>
             </div>
           ))}
         </div>
@@ -143,7 +143,7 @@ export default function About() {
             <div className="text-xs text-primary uppercase tracking-[0.22em] font-semibold mb-3">
               How we work
             </div>
-            <h2 className="text-3xl md:text-4xl font-display font-semibold text-white tracking-tight leading-tight">
+            <h2 className="text-3xl md:text-4xl font-display font-semibold text-foreground tracking-tight leading-tight">
               Principles we don't compromise on.
             </h2>
           </div>
@@ -152,15 +152,15 @@ export default function About() {
             {VALUES.map((v, i) => (
               <div
                 key={i}
-                className="reveal-up rounded-2xl border border-white/10 bg-card/30 backdrop-blur-md p-7 hover:border-white/20 hover:-translate-y-1 transition-all"
+                className="reveal-up rounded-2xl border border-border bg-card/30 backdrop-blur-md p-7 hover:border-border hover:-translate-y-1 transition-all"
               >
                 <div className="w-11 h-11 rounded-xl bg-primary/15 border border-primary/25 flex items-center justify-center text-primary mb-5">
                   <v.icon className="w-5 h-5" strokeWidth={1.6} />
                 </div>
-                <h3 className="text-xl font-display font-semibold text-white mb-2 tracking-tight">
+                <h3 className="text-xl font-display font-semibold text-foreground mb-2 tracking-tight">
                   {v.title}
                 </h3>
-                <p className="text-white/60 leading-relaxed font-light">
+                <p className="text-foreground/60 leading-relaxed font-light">
                   {v.desc}
                 </p>
               </div>
@@ -169,35 +169,35 @@ export default function About() {
         </div>
 
         {/* Founder note (small, factual, no resume) */}
-        <div className="reveal-up rounded-2xl border border-white/10 bg-card/30 backdrop-blur-md p-8 md:p-10 mb-20">
-          <div className="text-xs text-white/40 uppercase tracking-[0.22em] font-semibold mb-3">
+        <div className="reveal-up rounded-2xl border border-border bg-card/30 backdrop-blur-md p-8 md:p-10 mb-20">
+          <div className="text-xs text-foreground/40 uppercase tracking-[0.22em] font-semibold mb-3">
             A note from the founder
           </div>
-          <p className="text-lg text-white/75 leading-relaxed mb-4 font-light">
+          <p className="text-lg text-foreground/75 leading-relaxed mb-4 font-light">
             Jaabili is run from Hyderabad, India by a small founding team. We
             care more about whether an agent helps a real business close
             another deal or resolve another ticket than about benchmark scores.
             If that resonates, we'd love to talk.
           </p>
-          <p className="text-sm text-white/50">
+          <p className="text-sm text-foreground/50">
             — Saathvik Kalepu, Founder
           </p>
         </div>
 
         {/* CTA */}
-        <div className="reveal-up flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 rounded-3xl border border-white/10 bg-gradient-to-r from-primary/10 via-card/40 to-accent/10 p-8 md:p-10">
+        <div className="reveal-up flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 rounded-3xl border border-border bg-gradient-to-r from-primary/10 via-card/40 to-accent/10 p-8 md:p-10">
           <div>
-            <h3 className="text-2xl md:text-3xl font-display font-semibold text-white tracking-tight mb-2">
+            <h3 className="text-2xl md:text-3xl font-display font-semibold text-foreground tracking-tight mb-2">
               Want to work with us?
             </h3>
-            <p className="text-white/60">
+            <p className="text-foreground/60">
               Whether you're a founder, operator, or partner — we'd love to
               hear what you're trying to automate.
             </p>
           </div>
           <Link
             href="/contact"
-            className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-white text-black font-semibold hover:bg-white/90 transition-colors shrink-0"
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-foreground text-background font-semibold hover:bg-foreground/90 transition-colors shrink-0"
           >
             Get in touch
             <ArrowRight className="w-4 h-4" />

@@ -1,6 +1,9 @@
+import { useEffect, useState } from "react";
 import { Link } from "wouter";
 import { Linkedin, Instagram, Mail, Send } from "lucide-react";
-import logo from "@assets/jaabili_logo_clean.png";
+import { useTheme } from "next-themes";
+import logoDark from "@assets/jaabili-logo-dark.png";
+import logoLight from "@assets/jaabili-logo-light.png";
 
 const SOCIALS = [
   {
@@ -35,10 +38,15 @@ const COMPANY_LINKS = [
 ];
 
 export default function Footer() {
+  const { resolvedTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  const logo = mounted && resolvedTheme === "light" ? logoLight : logoDark;
+
   return (
     <footer
       data-site-footer
-      className="bg-background border-t border-white/5 pt-20 pb-28 md:pb-12 overflow-hidden relative font-sans"
+      className="bg-background border-t border-border pt-20 pb-28 md:pb-12 overflow-hidden relative font-sans"
     >
       <div className="absolute top-0 left-1/4 w-96 h-96 bg-primary/5 rounded-full blur-3xl pointer-events-none" />
 
@@ -53,16 +61,16 @@ export default function Footer() {
                 className="h-24 sm:h-28 w-auto object-contain drop-shadow-[0_0_28px_rgba(20,184,166,0.42)]"
               />
             </Link>
-            <p className="text-white/55 text-sm leading-relaxed max-w-md mb-8">
-              Premium Agentic AI studio designing and deploying intelligent
-              agent platforms — bringing together orchestration, security, and
-              real conversation across every channel.
+            <p className="text-foreground/55 text-sm leading-relaxed max-w-md mb-8">
+              AI agents for small and growing businesses — starting with a
+              website agent that answers visitor questions and captures leads
+              around the clock.
             </p>
 
             {/* Newsletter / contact CTA */}
             <a
               href="mailto:jaabilitech@gmail.com"
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-colors text-sm text-white/85"
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-foreground/5 border border-border hover:bg-foreground/10 transition-colors text-sm text-foreground/85"
             >
               <Send className="w-3.5 h-3.5 text-primary" />
               <span className="font-medium">jaabilitech@gmail.com</span>
@@ -71,7 +79,7 @@ export default function Footer() {
 
           {/* Platform */}
           <div className="md:col-span-3 md:col-start-7">
-            <h4 className="text-white text-xs font-semibold uppercase tracking-[0.18em] mb-5">
+            <h4 className="text-foreground text-xs font-semibold uppercase tracking-[0.18em] mb-5">
               Platform
             </h4>
             <ul className="space-y-3">
@@ -79,7 +87,7 @@ export default function Footer() {
                 <li key={l.href}>
                   <Link
                     href={l.href}
-                    className="text-white/55 hover:text-white transition-colors text-sm font-normal"
+                    className="text-foreground/55 hover:text-foreground transition-colors text-sm font-normal"
                   >
                     {l.label}
                   </Link>
@@ -90,7 +98,7 @@ export default function Footer() {
 
           {/* Company */}
           <div className="md:col-span-3">
-            <h4 className="text-white text-xs font-semibold uppercase tracking-[0.18em] mb-5">
+            <h4 className="text-foreground text-xs font-semibold uppercase tracking-[0.18em] mb-5">
               Company
             </h4>
             <ul className="space-y-3">
@@ -98,7 +106,7 @@ export default function Footer() {
                 <li key={l.href}>
                   <Link
                     href={l.href}
-                    className="text-white/55 hover:text-white transition-colors text-sm font-normal"
+                    className="text-foreground/55 hover:text-foreground transition-colors text-sm font-normal"
                   >
                     {l.label}
                   </Link>
@@ -109,13 +117,13 @@ export default function Footer() {
         </div>
 
         {/* Bottom bar */}
-        <div className="pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+        <div className="pt-8 border-t border-border flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
           <div className="flex flex-col gap-1">
-            <p className="text-white/45 text-xs font-medium tracking-wide">
+            <p className="text-foreground/45 text-xs font-medium tracking-wide">
               © {new Date().getFullYear()} Jaabili Tech Solutions. All rights
               reserved.
             </p>
-            <p className="text-[10px] uppercase tracking-[0.22em] text-white/30 font-semibold">
+            <p className="text-[10px] uppercase tracking-[0.22em] text-foreground/30 font-semibold">
               Powered by Jaabili Associates
             </p>
           </div>
@@ -130,25 +138,25 @@ export default function Footer() {
                   target={s.href.startsWith("http") ? "_blank" : undefined}
                   rel={s.href.startsWith("http") ? "noopener noreferrer" : undefined}
                   aria-label={s.label}
-                  className="w-9 h-9 flex items-center justify-center rounded-full border border-white/10 bg-white/[0.03] text-white/70 hover:text-white hover:bg-white/10 hover:border-white/25 transition-all"
+                  className="w-9 h-9 flex items-center justify-center rounded-full border border-border bg-foreground/[0.03] text-foreground/70 hover:text-foreground hover:bg-foreground/10 transition-all"
                 >
                   <Icon className="w-4 h-4" strokeWidth={1.7} />
                 </a>
               );
             })}
-            <span className="mx-2 h-5 w-px bg-white/10" />
-            <a
-              href="#"
-              className="text-[11px] text-white/40 hover:text-white transition-colors"
+            <span className="mx-2 h-5 w-px bg-border" />
+            <Link
+              href="/privacy"
+              className="text-[11px] text-foreground/40 hover:text-foreground transition-colors"
             >
               Privacy
-            </a>
-            <a
-              href="#"
-              className="text-[11px] text-white/40 hover:text-white transition-colors"
+            </Link>
+            <Link
+              href="/terms"
+              className="text-[11px] text-foreground/40 hover:text-foreground transition-colors"
             >
               Terms
-            </a>
+            </Link>
           </div>
         </div>
       </div>

@@ -7,13 +7,10 @@ import { motion } from "framer-motion";
 import {
   MessageSquare,
   Target,
-  Brain,
   ShieldCheck,
   Zap,
   Lock,
-  Globe,
   BarChart,
-  Mic,
   ArrowRight,
   Sparkles,
   Layers,
@@ -33,12 +30,10 @@ import {
 
 gsap.registerPlugin(ScrollTrigger);
 
+import productDashboardShot from "@assets/product-dashboard-shot.png";
+
 const BASE = import.meta.env.BASE_URL;
-const templateSales = BASE + "assets/images/template-sales.png";
-const templateSupport = BASE + "assets/images/template-support.png";
-const templateMarketing = BASE + "assets/images/template-marketing.png";
 const channelsHub = BASE + "assets/images/channels-hub.png";
-const dashboardMockup = BASE + "assets/images/dashboard-mockup.png";
 
 const partners = [
   "Aurora Ventures",
@@ -51,54 +46,13 @@ const partners = [
   "Zenith Corp",
 ];
 
-const templates = [
-  {
-    title: "Sales Closer",
-    tag: "Sales · WhatsApp · Web",
-    desc: "Always-on outbound that qualifies and books meetings.",
-    image: templateSales,
-    accent: "var(--primary)",
-  },
-  {
-    title: "Support Concierge",
-    tag: "Support · CRM sync",
-    desc: "Resolves L1 tickets instantly with empathy and context.",
-    image: templateSupport,
-    accent: "var(--secondary)",
-  },
-  {
-    title: "Social Marketer",
-    tag: "Marketing · DMs",
-    desc: "Engages Instagram and Twitter conversations on-brand.",
-    image: templateMarketing,
-    accent: "var(--accent)",
-  },
-  {
-    title: "Lead Router",
-    tag: "Operations · Routing",
-    desc: "Scores and routes leads to the right rep in real time.",
-    image: channelsHub,
-    accent: "var(--primary)",
-  },
-  {
-    title: "Workflow Copilot",
-    tag: "Internal · Automations",
-    desc: "Automates the manual work between your tools.",
-    image: dashboardMockup,
-    accent: "var(--secondary)",
-  },
-];
-
 const flashCards = [
-  { title: "AI Sales Agent", desc: "Always-on outbound & inbound.", icon: Target, color: "var(--primary)" },
-  { title: "Customer Support", desc: "Instant empathic resolution.", icon: MessageSquare, color: "var(--secondary)" },
-  { title: "Lead Qualification", desc: "Automated scoring & routing.", icon: Zap, color: "var(--accent)" },
-  { title: "Multi-LLM Router", desc: "GPT, Claude, or Gemini.", icon: Brain, color: "var(--primary)" },
-  { title: "Security Cloud", desc: "Enterprise-grade encryption.", icon: ShieldCheck, color: "var(--secondary)" },
-  { title: "WhatsApp Integration", desc: "Native messaging APIs.", icon: Globe, color: "var(--accent)" },
-  { title: "Knowledge Base", desc: "Isolated vector databases.", icon: Lock, color: "var(--primary)" },
-  { title: "Analytics", desc: "Deep conversation insights.", icon: BarChart, color: "var(--secondary)" },
-  { title: "Voice Channel", desc: "Real-time voice synthesis.", icon: Mic, color: "var(--accent)" },
+  { title: "FAQ Answers", desc: "Trained on your own content, answers instantly.", icon: MessageSquare, color: "var(--primary)" },
+  { title: "Lead Capture", desc: "Name, contact, and requirement — captured automatically.", icon: Target, color: "var(--secondary)" },
+  { title: "Lead Qualification", desc: "Every lead sorted hot, medium, or low.", icon: Zap, color: "var(--accent)" },
+  { title: "Owner Notifications", desc: "Instant alerts the moment a hot lead lands.", icon: BarChart, color: "var(--primary)" },
+  { title: "Conversation History", desc: "Every chat saved and searchable in your dashboard.", icon: Lock, color: "var(--secondary)" },
+  { title: "Human Handoff", desc: "Step into any conversation yourself, any time.", icon: ShieldCheck, color: "var(--accent)" },
 ];
 
 const purposeCards = [
@@ -127,44 +81,37 @@ const purposeCards = [
 
 const bentoItems = [
   {
-    title: "Sales Agents",
-    desc: "Closers that work every channel — WhatsApp, web, and voice — qualifying leads while you sleep.",
+    title: "Nova",
+    desc: "Your website sales agent — greets visitors, answers questions from your own content, and qualifies every lead. Live today.",
     icon: Target,
     accent: "var(--primary)",
     span: "md:col-span-2 md:row-span-2",
     big: true,
   },
   {
-    title: "Customer Support",
-    desc: "Empathic L1 resolution synced to your CRM.",
+    title: "WhatsApp Business Agent",
+    desc: "Coming next — automated conversations on WhatsApp.",
     icon: MessagesSquare,
     accent: "var(--secondary)",
     span: "md:col-span-1",
   },
   {
-    title: "Multi-LLM Routing",
-    desc: "Right model, right task — GPT, Claude, Gemini.",
-    icon: Brain,
+    title: "Customer Support Agent",
+    desc: "Coming next — resolves repetitive queries from your knowledge base.",
+    icon: ShieldCheck,
     accent: "var(--accent)",
     span: "md:col-span-1",
   },
   {
-    title: "Security Cloud",
-    desc: "Enterprise encryption with isolated vector stores.",
-    icon: ShieldCheck,
+    title: "Lead Follow-Up Agent",
+    desc: "Coming next — automatically re-engages captured leads.",
+    icon: Sparkles,
     accent: "var(--primary)",
     span: "md:col-span-2",
   },
   {
-    title: "Voice Channel",
-    desc: "Real-time voice synthesis on your line.",
-    icon: Mic,
-    accent: "var(--accent)",
-    span: "md:col-span-1",
-  },
-  {
-    title: "Workflow Copilot",
-    desc: "Wire it to Notion, Sheets, Slack, anywhere.",
+    title: "Business Operations Agent",
+    desc: "Coming next — AI-generated insights across your agents.",
     icon: Layers,
     accent: "var(--secondary)",
     span: "md:col-span-1",
@@ -323,7 +270,7 @@ export default function Home() {
 
         <div className="container px-6 relative z-10 max-w-5xl text-center flex flex-col items-center">
           <RollingHeadline
-            className="text-4xl sm:text-5xl md:text-6xl lg:text-[4.25rem] font-semibold text-white tracking-tight leading-[1.08] mb-7 font-display"
+            className="text-4xl sm:text-5xl md:text-6xl lg:text-[4.25rem] font-semibold text-foreground tracking-tight leading-[1.08] mb-7 font-display"
             lines={[
               [
                 { text: "Build" },
@@ -343,11 +290,12 @@ export default function Home() {
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.7, ease: "easeOut" }}
-            className="text-white/60 text-base md:text-xl max-w-2xl mb-10 font-light leading-relaxed"
+            className="text-foreground/60 text-base md:text-xl max-w-2xl mb-10 font-light leading-relaxed"
           >
-            The unified intelligence layer for your operations. Build each
-            service as a focused agent, then connect them into one calm system
-            across WhatsApp, web, voice, CRM, and internal tools.
+            Start with Nova, a website sales agent that answers visitor
+            questions from your own content and captures qualified leads
+            while you sleep. More agents — WhatsApp, support, follow-up —
+            are on the way.
           </motion.p>
 
           <motion.div
@@ -357,12 +305,12 @@ export default function Home() {
             className="flex flex-col sm:flex-row gap-3"
           >
             <Link href="/get-started">
-              <button className="px-7 py-3.5 bg-white text-black rounded-full font-semibold hover:bg-white/90 transition-colors shadow-[0_0_30px_rgba(255,255,255,0.12)]">
+              <button className="px-7 py-3.5 bg-foreground text-background rounded-full font-semibold hover:opacity-90 transition-opacity shadow-[0_0_30px_rgba(255,255,255,0.12)] dark:shadow-[0_0_30px_rgba(255,255,255,0.12)]">
                 Open the Platform
               </button>
             </Link>
             <Link href="/agents">
-              <button className="px-7 py-3.5 bg-white/5 text-white border border-white/10 rounded-full font-medium hover:bg-white/10 transition-colors backdrop-blur-sm">
+              <button className="px-7 py-3.5 bg-foreground/5 text-foreground border border-border rounded-full font-medium hover:bg-foreground/10 transition-colors backdrop-blur-sm">
                 Watch the demo
               </button>
             </Link>
@@ -372,10 +320,37 @@ export default function Home() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.7, delay: 1.05 }}
-            className="mt-5 text-xs text-white/35 tracking-wide"
+            className="mt-5 text-xs text-foreground/35 tracking-wide"
           >
             No credit card · 14-day trial · Cancel anytime
           </motion.p>
+
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, delay: 1.2, ease: "easeOut" }}
+            className="mt-16 w-full max-w-4xl"
+          >
+            <div className="relative rounded-2xl border border-border bg-[#0d1117] shadow-[0_30px_90px_rgba(0,0,0,0.55)] overflow-hidden">
+              <div className="flex items-center gap-1.5 border-b border-border bg-foreground/[0.03] px-4 py-2.5">
+                <span className="h-2.5 w-2.5 rounded-full bg-foreground/15" />
+                <span className="h-2.5 w-2.5 rounded-full bg-foreground/15" />
+                <span className="h-2.5 w-2.5 rounded-full bg-foreground/15" />
+                <span className="ml-3 text-xs text-foreground/30">
+                  jaabili.tech/dashboard/agents/website-sales
+                </span>
+              </div>
+              <img
+                src={productDashboardShot}
+                alt="Nova (Website Sales Agent) setup dashboard — readiness score, knowledge sources, live conversation stats"
+                className="w-full h-auto object-cover object-top"
+                loading="lazy"
+              />
+            </div>
+            <p className="mt-4 text-center text-xs text-foreground/35">
+              The actual Nova setup screen — not a mockup.
+            </p>
+          </motion.div>
         </div>
       </section>
 
@@ -384,15 +359,15 @@ export default function Home() {
         <div className="container px-6 max-w-7xl mx-auto">
           <div className="grid grid-cols-1 lg:grid-cols-[0.9fr_1.1fr] gap-10 lg:gap-16 items-end mb-10 reveal-up">
             <div>
-              <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-medium uppercase tracking-[0.18em] text-primary mb-5">
+              <div className="inline-flex items-center gap-2 rounded-full border border-border bg-foreground/[0.04] px-3 py-1.5 text-xs font-medium uppercase tracking-[0.18em] text-primary mb-5">
                 <Sparkles className="h-3.5 w-3.5" />
                 Purpose
               </div>
-              <h2 className="text-3xl md:text-4xl lg:text-5xl text-white font-display font-semibold tracking-tight leading-tight">
+              <h2 className="text-3xl md:text-4xl lg:text-5xl text-foreground font-display font-semibold tracking-tight leading-tight">
                 Not another dashboard. A working layer for every service.
               </h2>
             </div>
-            <p className="text-white/55 text-base md:text-lg leading-relaxed max-w-2xl lg:justify-self-end">
+            <p className="text-foreground/55 text-base md:text-lg leading-relaxed max-w-2xl lg:justify-self-end">
               Jaabili is meant to split your business into capable agent
               applications without losing the benefit of one connected platform.
               Each agent has a job, memory, tools, guardrails, and a measurable
@@ -408,7 +383,7 @@ export default function Home() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, amount: 0.25 }}
                 transition={{ duration: 0.55, delay: i * 0.08, ease: "easeOut" }}
-                className="group relative min-h-[300px] overflow-hidden rounded-2xl border border-white/10 bg-card/35 p-6 backdrop-blur-md transition-all duration-300 hover:-translate-y-1 hover:border-white/20"
+                className="group relative min-h-[300px] overflow-hidden rounded-2xl border border-border bg-card/35 p-6 backdrop-blur-md transition-all duration-300 hover:-translate-y-1 hover:border-border"
               >
                 <div
                   className="absolute -right-16 -top-16 h-44 w-44 rounded-full blur-[70px] opacity-25 transition-opacity duration-500 group-hover:opacity-40"
@@ -417,7 +392,7 @@ export default function Home() {
                 <div className="relative z-10 flex h-full flex-col">
                   <div className="mb-8 flex items-center justify-between">
                     <div
-                      className="flex h-12 w-12 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04]"
+                      className="flex h-12 w-12 items-center justify-center rounded-xl border border-border bg-foreground/[0.04]"
                       style={{ color: card.accent }}
                     >
                       <card.icon className="h-5 w-5" strokeWidth={1.6} />
@@ -429,10 +404,10 @@ export default function Home() {
                       {card.stat}
                     </span>
                   </div>
-                  <h3 className="text-2xl font-display font-semibold tracking-tight text-white leading-tight">
+                  <h3 className="text-2xl font-display font-semibold tracking-tight text-foreground leading-tight">
                     {card.title}
                   </h3>
-                  <p className="mt-4 text-sm md:text-base leading-relaxed text-white/55">
+                  <p className="mt-4 text-sm md:text-base leading-relaxed text-foreground/55">
                     {card.desc}
                   </p>
                   <div className="mt-auto pt-8">
@@ -448,13 +423,13 @@ export default function Home() {
       {/* TRUST STRIP */}
       <div
         ref={marqueeRef}
-        className="bg-white/[0.02] border-y border-white/5 py-6 overflow-hidden flex whitespace-nowrap"
+        className="bg-foreground/[0.02] border-y border-border py-6 overflow-hidden flex whitespace-nowrap"
       >
-        <div className="marquee-inner flex gap-14 items-center text-white/30 font-serif italic text-xl">
+        <div className="marquee-inner flex gap-14 items-center text-foreground/30 font-serif italic text-xl">
           {Array(4).fill(partners).flat().map((partner, i) => (
             <span
               key={i}
-              className="hover:text-white/70 transition-colors cursor-default"
+              className="hover:text-foreground/70 transition-colors cursor-default"
             >
               {partner}
             </span>
@@ -466,12 +441,11 @@ export default function Home() {
       <section className="py-32 relative">
         <div className="container px-6 relative z-10 max-w-6xl mx-auto">
           <div className="text-center mb-16 reveal-up">
-            <h2 className="text-3xl md:text-5xl text-white font-display font-semibold tracking-tight mb-4 leading-tight">
-              A complete agent ecosystem
+            <h2 className="text-3xl md:text-5xl text-foreground font-display font-semibold tracking-tight mb-4 leading-tight">
+              What Nova does
             </h2>
-            <p className="text-white/55 text-lg md:text-xl font-light max-w-2xl mx-auto leading-relaxed">
-              Everything you need to automate operations, embedded natively
-              into your existing channels.
+            <p className="text-foreground/55 text-lg md:text-xl font-light max-w-2xl mx-auto leading-relaxed">
+              Your website sales agent, live today, embedded directly into your website.
             </p>
           </div>
 
@@ -479,7 +453,7 @@ export default function Home() {
             {flashCards.map((card, i) => (
               <div
                 key={i}
-                className="flash-card-item group relative bg-card/40 backdrop-blur-xl border border-white/5 rounded-2xl p-6 hover:-translate-y-1.5 transition-all duration-300 hover:shadow-2xl overflow-hidden"
+                className="flash-card-item group relative bg-card/40 backdrop-blur-xl border border-border rounded-2xl p-6 hover:-translate-y-1.5 transition-all duration-300 hover:shadow-2xl overflow-hidden"
               >
                 <div
                   className="absolute top-0 left-0 right-0 h-[2px] opacity-50 group-hover:opacity-100 transition-opacity"
@@ -496,15 +470,15 @@ export default function Home() {
                 />
                 <div className="relative z-10 flex flex-col h-full">
                   <div
-                    className="w-12 h-12 rounded-xl mb-6 flex items-center justify-center bg-white/5 border border-white/10 group-hover:scale-110 transition-transform duration-300"
+                    className="w-12 h-12 rounded-xl mb-6 flex items-center justify-center bg-foreground/5 border border-border group-hover:scale-110 transition-transform duration-300"
                     style={{ color: card.color }}
                   >
                     <card.icon strokeWidth={1.5} />
                   </div>
-                  <h3 className="text-xl font-semibold text-white mb-2 tracking-tight">
+                  <h3 className="text-xl font-semibold text-foreground mb-2 tracking-tight">
                     {card.title}
                   </h3>
-                  <p className="text-white/60 leading-relaxed font-light">
+                  <p className="text-foreground/60 leading-relaxed font-light">
                     {card.desc}
                   </p>
                 </div>
@@ -515,29 +489,28 @@ export default function Home() {
       </section>
 
       {/* SPLIT — ONE PLATFORM */}
-      <section className="py-20 relative border-y border-white/5 bg-black/20">
+      <section className="py-20 relative border-y border-border bg-foreground/[0.035]">
         <div className="container px-6 relative z-10 max-w-7xl mx-auto">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             <div className="reveal-up order-2 lg:order-1">
-              <h2 className="text-3xl md:text-5xl font-display font-semibold tracking-tight text-white mb-6 leading-tight">
-                One platform. <br />
+              <h2 className="text-3xl md:text-5xl font-display font-semibold tracking-tight text-foreground mb-6 leading-tight">
+                One agent. <br />
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-secondary to-accent">
-                  Every channel.
+                  Every visitor.
                 </span>
               </h2>
-              <p className="text-white/60 text-xl font-light leading-relaxed mb-8">
-                Unify your customer interactions across WhatsApp, web, and
-                voice. Our intelligent routing dynamically delegates tasks to
-                the optimal LLM while keeping your data isolated and secure.
+              <p className="text-foreground/60 text-xl font-light leading-relaxed mb-8">
+                Every website conversation is saved, every lead is scored, and
+                your business data stays isolated to your workspace alone.
               </p>
               <ul className="space-y-4 mb-10">
                 {[
-                  "Omnichannel memory sync",
-                  "Dynamic model selection (GPT, Claude)",
-                  "Isolated vector storage",
-                  "End-to-end encryption",
+                  "Full conversation history",
+                  "Automatic lead scoring",
+                  "Per-workspace data isolation",
+                  "Human takeover, any time",
                 ].map((feature, i) => (
-                  <li key={i} className="flex items-center gap-3 text-white/80">
+                  <li key={i} className="flex items-center gap-3 text-foreground/80">
                     <ShieldCheck className="w-5 h-5 text-primary shrink-0" />
                     <span>{feature}</span>
                   </li>
@@ -551,7 +524,7 @@ export default function Home() {
             </div>
 
             <div className="reveal-up order-1 lg:order-2 relative">
-              <div className="relative rounded-3xl overflow-hidden border border-white/10 shadow-[0_0_50px_rgba(20,184,166,0.15)] aspect-square">
+              <div className="relative rounded-3xl overflow-hidden border border-border shadow-[0_0_50px_rgba(20,184,166,0.15)] aspect-square">
                 <img
                   src={
                     import.meta.env.BASE_URL +
@@ -567,15 +540,15 @@ export default function Home() {
       </section>
 
       {/* WHAT WE BUILD — BENTO GRID */}
-      <section className="py-32 relative border-b border-white/5">
+      <section className="py-32 relative border-b border-border">
         <div className="container px-6 max-w-7xl mx-auto">
           <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6 mb-12 reveal-up">
             <div>
-              <h2 className="text-3xl md:text-5xl text-white font-display font-semibold tracking-tight leading-tight">
+              <h2 className="text-3xl md:text-5xl text-foreground font-display font-semibold tracking-tight leading-tight">
                 What we build, end to end.
               </h2>
             </div>
-            <p className="text-white/50 max-w-md font-light leading-relaxed">
+            <p className="text-foreground/50 max-w-md font-light leading-relaxed">
               Six building blocks. One unified runtime. Compose the agents your
               business actually needs — without stitching tools together.
             </p>
@@ -585,7 +558,7 @@ export default function Home() {
             {bentoItems.map((item, i) => (
               <div
                 key={i}
-                className={`bento-item group relative rounded-3xl border border-white/8 bg-card/30 backdrop-blur-md overflow-hidden p-6 md:p-8 flex flex-col justify-between hover:border-white/20 hover:-translate-y-1 transition-all duration-500 ${item.span}`}
+                className={`bento-item group relative rounded-3xl border border-border bg-card/30 backdrop-blur-md overflow-hidden p-6 md:p-8 flex flex-col justify-between hover:border-border hover:-translate-y-1 transition-all duration-500 ${item.span}`}
               >
                 <div
                   className="absolute -top-12 -right-12 w-48 h-48 rounded-full blur-[60px] opacity-25 group-hover:opacity-40 transition-opacity"
@@ -598,19 +571,19 @@ export default function Home() {
                   }}
                 />
                 <div
-                  className="w-11 h-11 rounded-xl flex items-center justify-center bg-white/5 border border-white/10 relative z-10"
+                  className="w-11 h-11 rounded-xl flex items-center justify-center bg-foreground/5 border border-border relative z-10"
                   style={{ color: item.accent }}
                 >
                   <item.icon strokeWidth={1.5} className="w-5 h-5" />
                 </div>
                 <div className="relative z-10">
                   <h3
-                    className={`font-display font-semibold text-white mb-2 tracking-tight ${item.big ? "text-3xl md:text-4xl" : "text-xl"}`}
+                    className={`font-display font-semibold text-foreground mb-2 tracking-tight ${item.big ? "text-3xl md:text-4xl" : "text-xl"}`}
                   >
                     {item.title}
                   </h3>
                   <p
-                    className={`text-white/55 leading-relaxed font-light ${item.big ? "text-base md:text-lg max-w-md" : "text-sm"}`}
+                    className={`text-foreground/55 leading-relaxed font-light ${item.big ? "text-base md:text-lg max-w-md" : "text-sm"}`}
                   >
                     {item.desc}
                   </p>
@@ -622,10 +595,10 @@ export default function Home() {
       </section>
 
       {/* HOW IT WORKS — replaces stats */}
-      <section className="py-32 relative border-b border-white/5">
+      <section className="py-32 relative border-b border-border">
         <div className="container px-6 max-w-7xl mx-auto">
           <div className="text-center mb-16 reveal-up">
-            <h2 className="text-3xl md:text-5xl text-white font-display font-semibold tracking-tight leading-tight">
+            <h2 className="text-3xl md:text-5xl text-foreground font-display font-semibold tracking-tight leading-tight">
               From idea to live agent in three moves.
             </h2>
           </div>
@@ -662,10 +635,10 @@ export default function Home() {
                       {step.n}
                     </div>
                   </div>
-                  <h3 className="text-2xl font-display font-bold text-white mb-3 tracking-tight">
+                  <h3 className="text-2xl font-display font-bold text-foreground mb-3 tracking-tight">
                     {step.title}
                   </h3>
-                  <p className="text-white/55 leading-relaxed font-light max-w-xs">
+                  <p className="text-foreground/55 leading-relaxed font-light max-w-xs">
                     {step.desc}
                   </p>
                 </div>
@@ -678,22 +651,22 @@ export default function Home() {
       {/* TESTIMONIAL — keep one polished quote */}
       <section className="py-32 relative">
         <div className="container px-6 relative z-10 max-w-4xl mx-auto reveal-up">
-          <div className="glass-panel p-12 md:p-16 rounded-[2.5rem] relative overflow-hidden text-center border-white/10">
+          <div className="glass-panel p-12 md:p-16 rounded-[2.5rem] relative overflow-hidden text-center border-border">
             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary via-secondary to-accent opacity-50" />
             <div className="absolute -top-24 -right-24 w-64 h-64 bg-primary/10 rounded-full blur-[80px]" />
-            <Quote className="w-10 h-10 text-white/15 mx-auto mb-8" strokeWidth={1.5} />
-            <h3 className="text-2xl md:text-4xl font-serif italic text-white leading-relaxed mb-8">
+            <Quote className="w-10 h-10 text-foreground/15 mx-auto mb-8" strokeWidth={1.5} />
+            <h3 className="text-2xl md:text-4xl font-serif italic text-foreground leading-relaxed mb-8">
               "We don't just build chatbots. We build cognitive systems that
               understand your business logic and execute it flawlessly across
               every medium."
             </h3>
             <div className="flex items-center justify-center gap-4">
-              <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center font-serif text-xl border border-white/20">
+              <div className="w-12 h-12 rounded-full bg-foreground/10 flex items-center justify-center font-serif text-xl border border-border">
                 SK
               </div>
               <div className="text-left">
-                <div className="text-white font-medium">Saathvik Kalepu</div>
-                <div className="text-white/50 text-sm">Founder, Jaabili</div>
+                <div className="text-foreground font-medium">Saathvik Kalepu</div>
+                <div className="text-foreground/50 text-sm">Founder, Jaabili</div>
               </div>
             </div>
           </div>
@@ -701,13 +674,13 @@ export default function Home() {
       </section>
 
       {/* FAQ — user questions answered */}
-      <section className="py-32 relative bg-black/20 border-y border-white/5">
+      <section className="py-32 relative bg-foreground/[0.035] border-y border-border">
         <div className="container px-6 max-w-5xl mx-auto">
           <div className="text-center mb-14 reveal-up">
-            <h2 className="text-3xl md:text-5xl text-white font-display font-semibold tracking-tight mb-4 leading-tight">
+            <h2 className="text-3xl md:text-5xl text-foreground font-display font-semibold tracking-tight mb-4 leading-tight">
               Questions our beta partners asked.
             </h2>
-            <p className="text-white/55 text-lg font-light max-w-2xl mx-auto leading-relaxed">
+            <p className="text-foreground/55 text-lg font-light max-w-2xl mx-auto leading-relaxed">
               These are the things teams actually wanted to know before
               shipping. Real questions, real answers.
             </p>
@@ -723,7 +696,7 @@ export default function Home() {
               <AccordionItem
                 key={i}
                 value={`q-${i}`}
-                className="border border-white/10 bg-card/30 backdrop-blur-md rounded-2xl overflow-hidden data-[state=open]:border-white/20 data-[state=open]:bg-card/50 transition-colors"
+                className="border border-border bg-card/30 backdrop-blur-md rounded-2xl overflow-hidden data-[state=open]:border-border data-[state=open]:bg-card/50 transition-colors"
               >
                 <AccordionTrigger className="px-6 py-5 text-left hover:no-underline group">
                   <div className="flex items-start gap-4 flex-1">
@@ -735,10 +708,10 @@ export default function Home() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="text-white font-medium text-sm">
+                        <span className="text-foreground font-medium text-sm">
                           {r.by}
                         </span>
-                        <span className="text-white/40 text-xs">
+                        <span className="text-foreground/40 text-xs">
                           · {r.role}
                         </span>
                         <div className="flex items-center gap-0.5 ml-auto md:ml-2">
@@ -750,25 +723,25 @@ export default function Home() {
                           ))}
                         </div>
                       </div>
-                      <p className="text-base md:text-lg font-medium text-white/90 leading-snug group-hover:text-white transition-colors">
+                      <p className="text-base md:text-lg font-medium text-foreground/90 leading-snug group-hover:text-foreground transition-colors">
                         {r.q}
                       </p>
                     </div>
                   </div>
                 </AccordionTrigger>
                 <AccordionContent className="px-6 pb-6">
-                  <div className="ml-13 pl-13 border-l border-white/10">
+                  <div className="ml-13 pl-13 border-l border-border">
                     <div className="ml-4 flex gap-3">
                       <div className="w-9 h-9 shrink-0 rounded-full bg-gradient-to-br from-primary via-secondary to-accent p-[1.5px]">
-                        <div className="w-full h-full rounded-full bg-background flex items-center justify-center text-[10px] font-bold tracking-wider text-white">
+                        <div className="w-full h-full rounded-full bg-background flex items-center justify-center text-[10px] font-bold tracking-wider text-foreground">
                           JB
                         </div>
                       </div>
                       <div className="flex-1">
-                        <div className="text-xs text-white/40 mb-1.5 font-medium">
+                        <div className="text-xs text-foreground/40 mb-1.5 font-medium">
                           Jaabili Studio
                         </div>
-                        <p className="text-white/75 text-base leading-relaxed font-light">
+                        <p className="text-foreground/75 text-base leading-relaxed font-light">
                           {r.a}
                         </p>
                       </div>
@@ -780,12 +753,12 @@ export default function Home() {
           </Accordion>
 
           <div className="text-center mt-12 reveal-up">
-            <p className="text-white/50 text-sm mb-4">
+            <p className="text-foreground/50 text-sm mb-4">
               Have a question we haven't answered?
             </p>
             <a
               href="mailto:jaabilitech@gmail.com"
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 transition-colors text-white/85 text-sm font-medium"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-foreground/5 border border-border hover:bg-foreground/10 transition-colors text-foreground/85 text-sm font-medium"
             >
               <MessageSquare className="w-4 h-4 text-primary" />
               Talk to our team
@@ -797,21 +770,21 @@ export default function Home() {
       {/* FINAL CTA */}
       <section className="py-32 bg-gradient-to-b from-transparent to-primary/10 text-center relative overflow-hidden">
         <div className="container px-6 relative z-10 max-w-4xl mx-auto flex flex-col items-center">
-          <h2 className="text-3xl md:text-5xl lg:text-6xl mb-6 text-white font-display font-semibold tracking-tight leading-tight reveal-up">
+          <h2 className="text-3xl md:text-5xl lg:text-6xl mb-6 text-foreground font-display font-semibold tracking-tight leading-tight reveal-up">
             Ready to automate?
           </h2>
-          <p className="text-lg md:text-xl text-white/60 mb-10 reveal-up max-w-2xl leading-relaxed font-light">
+          <p className="text-lg md:text-xl text-foreground/60 mb-10 reveal-up max-w-2xl leading-relaxed font-light">
             Step into the future. Let us build the intelligent systems that
             drive your autonomous growth.
           </p>
           <div className="reveal-up flex flex-col sm:flex-row gap-3">
             <Link href="/get-started">
-              <button className="px-8 py-3.5 bg-white text-black rounded-full font-semibold hover:bg-white/90 transition-all shadow-[0_0_40px_rgba(255,255,255,0.15)] hover:shadow-[0_0_60px_rgba(255,255,255,0.25)] hover:scale-[1.02]">
+              <button className="px-8 py-3.5 bg-foreground text-background rounded-full font-semibold hover:opacity-90 transition-all shadow-[0_0_40px_rgba(255,255,255,0.15)] hover:scale-[1.02]">
                 Start building today
               </button>
             </Link>
             <Link href="/pricing">
-              <button className="px-8 py-3.5 bg-white/5 text-white border border-white/10 rounded-full font-medium hover:bg-white/10 transition-colors">
+              <button className="px-8 py-3.5 bg-foreground/5 text-foreground border border-border rounded-full font-medium hover:bg-foreground/10 transition-colors">
                 See pricing
               </button>
             </Link>
@@ -822,84 +795,3 @@ export default function Home() {
   );
 }
 
-interface Template {
-  title: string;
-  tag: string;
-  desc: string;
-  image: string;
-  accent: string;
-}
-
-function TemplateCard({
-  tpl,
-  index,
-  wide,
-}: {
-  tpl: Template;
-  index: number;
-  wide?: boolean;
-}) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 30 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, amount: 0.2 }}
-      transition={{ duration: 0.5, delay: index * 0.06, ease: "easeOut" }}
-      whileHover={{ y: -6 }}
-      className="group relative rounded-2xl overflow-hidden border border-white/10 bg-card/30 backdrop-blur-md cursor-pointer"
-    >
-      <div
-        className="absolute top-0 left-0 right-0 h-[2px] opacity-60 group-hover:opacity-100 transition-opacity"
-        style={{
-          backgroundColor: tpl.accent,
-          boxShadow: `0 0 10px ${tpl.accent}`,
-        }}
-      />
-      <div
-        className={`relative w-full ${wide ? "aspect-[16/8]" : "aspect-[16/10]"} overflow-hidden bg-black/40`}
-      >
-        <img
-          src={tpl.image}
-          alt={tpl.title}
-          loading="lazy"
-          className="w-full h-full object-cover opacity-90 group-hover:opacity-100 group-hover:scale-[1.04] transition-all duration-700"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-card via-card/30 to-transparent" />
-        <div className="absolute top-3 left-3">
-          <span
-            className="text-[10px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full backdrop-blur-md border border-white/15"
-            style={{
-              color: tpl.accent,
-              backgroundColor: "rgba(0,0,0,0.45)",
-            }}
-          >
-            {tpl.tag}
-          </span>
-        </div>
-      </div>
-      <div className="p-5">
-        <div className="flex items-start justify-between gap-3 mb-2">
-          <h3 className="text-lg font-display font-semibold text-white tracking-tight group-hover:text-primary transition-colors">
-            {tpl.title}
-          </h3>
-          <ArrowRight className="w-4 h-4 text-white/40 group-hover:text-white group-hover:translate-x-0.5 transition-all shrink-0 mt-1" />
-        </div>
-        <p className="text-sm text-white/55 leading-relaxed mb-4">
-          {tpl.desc}
-        </p>
-        <Link
-          href="/get-started"
-          className="inline-flex items-center gap-1.5 text-xs font-semibold text-white/80 hover:text-white transition-colors"
-        >
-          <span>Use template</span>
-          <span className="text-white/40 group-hover:text-white transition-colors">
-            ·
-          </span>
-          <span className="text-white/60 group-hover:text-white transition-colors">
-            Customize
-          </span>
-        </Link>
-      </div>
-    </motion.div>
-  );
-}

@@ -57,15 +57,90 @@
 }
 
 :root, .dark {
+  --opaque-button-border-intensity: 9;
+
+  --app-font-sans: 'Inter', sans-serif;
+  --app-font-serif: 'Instrument Serif', serif;
+  --app-font-mono: 'Space Mono', monospace;
+  --app-font-display: 'Inter Tight', sans-serif;
+
+  --radius: 0.75rem;
+
+  --chart-1: 175 80% 40%;
+  --chart-2: 45 90% 60%;
+  --chart-3: 280 70% 50%;
+  --chart-4: 215 80% 60%;
+  --chart-5: 150 80% 40%;
+}
+
+/* Light theme (default) */
+:root {
+  --button-outline: rgba(15, 23, 42, .10);
+  --badge-outline: rgba(15, 23, 42, .06);
+
+  --elevate-1: rgba(15, 23, 42, .03);
+  --elevate-2: rgba(15, 23, 42, .07);
+
+  --background: 38 32% 96%;
+  --foreground: 222 45% 11%;
+
+  --border: 32 20% 87%;
+
+  --card: 36 40% 98%;
+  --card-foreground: 222 45% 11%;
+  --card-border: 32 20% 87%;
+
+  --popover: 36 40% 98%;
+  --popover-foreground: 222 45% 11%;
+  --popover-border: 32 20% 87%;
+
+  --primary: 175 78% 30%;
+  --primary-foreground: 0 0% 100%;
+  --primary-border: 175 78% 26%;
+
+  --secondary: 38 88% 42%;
+  --secondary-foreground: 0 0% 100%;
+  --secondary-border: 38 88% 36%;
+
+  --muted: 36 25% 92%;
+  --muted-foreground: 222 16% 40%;
+
+  --accent: 270 62% 46%;
+  --accent-foreground: 0 0% 100%;
+
+  --destructive: 0 72% 45%;
+  --destructive-foreground: 0 0% 100%;
+
+  --input: 32 20% 87%;
+  --ring: 175 78% 30%;
+
+  --sidebar: 36 40% 98%;
+  --sidebar-foreground: 222 45% 11%;
+  --sidebar-border: 215 20% 88%;
+  --sidebar-primary: 175 78% 30%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 210 20% 94%;
+  --sidebar-accent-foreground: 222 45% 11%;
+  --sidebar-ring: 175 78% 30%;
+
+  --shadow-2xs: 0px 2px 0px 0px hsl(var(--border) / 0.15);
+  --shadow-xs: 0px 2px 0px 0px hsl(var(--border) / 0.15);
+  --shadow-sm: 0px 2px 0px 0px hsl(var(--border) / 0.15), 0px 1px 2px -1px hsl(var(--border) / 0.15);
+  --shadow: 0px 2px 0px 0px hsl(var(--border) / 0.15), 0px 1px 2px -1px hsl(var(--border) / 0.15);
+  --shadow-md: 0px 2px 0px 0px hsl(var(--border) / 0.15), 0px 2px 4px -1px hsl(var(--border) / 0.15);
+  --shadow-lg: 0px 2px 0px 0px hsl(var(--border) / 0.15), 0px 4px 6px -1px hsl(var(--border) / 0.15);
+  --shadow-xl: 0px 2px 0px 0px hsl(var(--border) / 0.15), 0px 8px 10px -1px hsl(var(--border) / 0.15);
+  --shadow-2xl: 0px 2px 0px 0px hsl(var(--border) / 0.15);
+}
+
+/* Dark theme (brand default — deep midnight navy / peacock) */
+.dark {
   --button-outline: rgba(255,255,255, .10);
   --badge-outline: rgba(255,255,255, .05);
-
-  --opaque-button-border-intensity: 9;
 
   --elevate-1: rgba(255,255,255, .04);
   --elevate-2: rgba(255,255,255, .09);
 
-  /* Deep midnight navy / peacock theme */
   --background: 220 50% 4%;
   --foreground: 210 20% 98%;
 
@@ -79,7 +154,6 @@
   --popover-foreground: 210 20% 98%;
   --popover-border: 215 30% 15%;
 
-  /* Teal / Gold primary */
   --primary: 175 80% 40%;
   --primary-foreground: 220 50% 4%;
   --primary-border: 175 80% 50%;
@@ -100,12 +174,6 @@
   --input: 215 30% 15%;
   --ring: 175 80% 40%;
 
-  --chart-1: 175 80% 40%;
-  --chart-2: 45 90% 60%;
-  --chart-3: 280 70% 50%;
-  --chart-4: 215 80% 60%;
-  --chart-5: 150 80% 40%;
-
   --sidebar: 220 50% 5%;
   --sidebar-foreground: 210 20% 98%;
   --sidebar-border: 215 30% 15%;
@@ -114,13 +182,6 @@
   --sidebar-accent: 215 30% 12%;
   --sidebar-accent-foreground: 210 20% 98%;
   --sidebar-ring: 175 80% 40%;
-
-  --app-font-sans: 'Inter', sans-serif;
-  --app-font-serif: 'Instrument Serif', serif;
-  --app-font-mono: 'Space Mono', monospace;
-  --app-font-display: 'Inter Tight', sans-serif;
-
-  --radius: 0.75rem;
 
   --shadow-2xs: 0px 2px 0px 0px hsl(var(--border) / 0.2);
   --shadow-xs: 0px 2px 0px 0px hsl(var(--border) / 0.2);
@@ -168,16 +229,16 @@
 }
 
 .glass-panel {
-  @apply bg-card/40 backdrop-blur-xl border border-white/10 shadow-2xl;
+  @apply bg-card/40 backdrop-blur-xl border border-border shadow-2xl;
 }
 
 .jaabili-input {
   width: 100%;
   border-radius: 1rem;
-  border: 1px solid rgb(255 255 255 / 0.1);
-  background: rgb(255 255 255 / 0.045);
+  border: 1px solid hsl(var(--border));
+  background: hsl(var(--foreground) / 0.045);
   padding: 0.8rem 1rem;
-  color: white;
+  color: hsl(var(--foreground));
   outline: none;
   transition:
     border-color 160ms ease,
@@ -186,28 +247,32 @@
 }
 
 .jaabili-input::placeholder {
-  color: rgb(255 255 255 / 0.3);
+  color: hsl(var(--foreground) / 0.35);
 }
 
 .jaabili-input:focus {
-  border-color: rgb(110 231 216 / 0.62);
-  background: rgb(255 255 255 / 0.065);
-  box-shadow: 0 0 0 4px rgb(110 231 216 / 0.08);
+  border-color: hsl(var(--primary) / 0.62);
+  background: hsl(var(--foreground) / 0.065);
+  box-shadow: 0 0 0 4px hsl(var(--primary) / 0.08);
 }
 
 select.jaabili-input {
-  color-scheme: dark;
+  color-scheme: light;
   cursor: pointer;
 }
 
+.dark select.jaabili-input {
+  color-scheme: dark;
+}
+
 select.jaabili-input option {
-  background: #0b1a2a;
-  color: #f8fafc;
+  background: hsl(var(--card));
+  color: hsl(var(--foreground));
 }
 
 select.jaabili-input option:checked {
-  background: #123848;
-  color: #ffffff;
+  background: hsl(var(--primary) / 0.18);
+  color: hsl(var(--foreground));
 }
 
 @keyframes jaabili-mandala-spin {

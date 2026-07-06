@@ -1,7 +1,15 @@
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import logo from "@assets/jaabili_logo_clean.png";
+import { useTheme } from "next-themes";
+import iconDark from "@assets/jaabili-icon-dark.png";
+import iconLight from "@assets/jaabili-icon-light.png";
 
 export function BrandPreloader({ show }: { show: boolean }) {
+  const { resolvedTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  const icon = mounted && resolvedTheme === "light" ? iconLight : iconDark;
+
   return (
     <AnimatePresence>
       {show && (
@@ -18,7 +26,7 @@ export function BrandPreloader({ show }: { show: boolean }) {
             transition={{ duration: 0.55, ease: "easeOut" }}
             className="relative flex flex-col items-center"
           >
-            <div className="relative flex h-44 w-44 items-center justify-center sm:h-52 sm:w-52">
+            <div className="relative flex h-32 w-32 items-center justify-center sm:h-36 sm:w-36">
               <motion.div
                 animate={{ rotate: 360 }}
                 transition={{ duration: 3.6, repeat: Infinity, ease: "linear" }}
@@ -27,24 +35,24 @@ export function BrandPreloader({ show }: { show: boolean }) {
               <motion.div
                 animate={{ rotate: -360 }}
                 transition={{ duration: 5.2, repeat: Infinity, ease: "linear" }}
-                className="absolute inset-5 rounded-full border border-transparent border-b-accent/70 border-l-white/20"
+                className="absolute inset-3 rounded-full border border-transparent border-b-accent/70 border-l-foreground/20"
               />
               <motion.img
-                src={logo}
+                src={icon}
                 alt="Jaabili Tech Solutions"
-                className="relative z-10 h-28 w-auto object-contain drop-shadow-[0_0_32px_rgba(20,184,166,0.55)] sm:h-32"
+                className="relative z-10 h-20 w-auto object-contain drop-shadow-[0_0_28px_rgba(20,184,166,0.55)] sm:h-24"
                 animate={{
-                  scale: [1, 1.04, 1],
+                  scale: [1, 1.05, 1],
                   filter: [
-                    "drop-shadow(0 0 22px rgba(20,184,166,0.45))",
-                    "drop-shadow(0 0 36px rgba(250,204,21,0.35))",
-                    "drop-shadow(0 0 22px rgba(20,184,166,0.45))",
+                    "drop-shadow(0 0 20px rgba(20,184,166,0.45))",
+                    "drop-shadow(0 0 32px rgba(250,204,21,0.35))",
+                    "drop-shadow(0 0 20px rgba(20,184,166,0.45))",
                   ],
                 }}
                 transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
               />
             </div>
-            <div className="mt-7 h-1 w-48 overflow-hidden rounded-full bg-white/10">
+            <div className="mt-8 h-1 w-40 overflow-hidden rounded-full bg-foreground/10">
               <motion.div
                 className="h-full rounded-full bg-gradient-to-r from-primary via-secondary to-accent"
                 initial={{ x: "-100%" }}

@@ -54,7 +54,7 @@ export const modelOptions = [
 ];
 
 export const agentOptions = [
-  "Website Sales Agent",
+  "Nova",
   "WhatsApp Sales Agent",
   "Support Agent",
   "Follow-up Agent",

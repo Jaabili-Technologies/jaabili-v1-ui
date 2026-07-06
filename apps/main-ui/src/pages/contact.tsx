@@ -79,10 +79,10 @@ export default function Contact() {
       <div className="container mx-auto px-6 max-w-6xl">
         {/* Heading */}
         <div className="text-center mb-16 reveal-up">
-          <h1 className="text-4xl md:text-6xl text-white font-display font-semibold tracking-tight leading-[1.05] mb-5">
+          <h1 className="text-4xl md:text-6xl text-foreground font-display font-semibold tracking-tight leading-[1.05] mb-5">
             How can we help?
           </h1>
-          <p className="text-lg text-white/60 max-w-2xl mx-auto leading-relaxed font-light">
+          <p className="text-lg text-foreground/60 max-w-2xl mx-auto leading-relaxed font-light">
             For any issue, question, or partnership opportunity — drop us a
             message and a real human from the Jaabili team will get back to
             you, usually within one working day.
@@ -93,16 +93,16 @@ export default function Contact() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-14 reveal-up">
           <a
             href="mailto:jaabilitech@gmail.com"
-            className="rounded-2xl border border-white/10 bg-card/30 hover:bg-card/50 hover:border-white/20 p-6 transition-all group"
+            className="rounded-2xl border border-border bg-card/30 hover:bg-card/50 hover:border-border p-6 transition-all group"
           >
             <Mail className="w-5 h-5 text-primary mb-4" strokeWidth={1.6} />
-            <div className="text-xs uppercase tracking-[0.18em] text-white/40 font-semibold mb-1">
+            <div className="text-xs uppercase tracking-[0.18em] text-foreground/40 font-semibold mb-1">
               Email us
             </div>
-            <div className="text-white font-medium group-hover:text-primary transition-colors">
+            <div className="text-foreground font-medium group-hover:text-primary transition-colors">
               jaabilitech@gmail.com
             </div>
-            <div className="text-xs text-white/45 mt-1">
+            <div className="text-xs text-foreground/45 mt-1">
               Best for issues and detailed questions
             </div>
           </a>
@@ -111,19 +111,19 @@ export default function Contact() {
             href="https://www.linkedin.com/in/jaabili-technologies-420470407/"
             target="_blank"
             rel="noopener noreferrer"
-            className="rounded-2xl border border-white/10 bg-card/30 hover:bg-card/50 hover:border-white/20 p-6 transition-all group"
+            className="rounded-2xl border border-border bg-card/30 hover:bg-card/50 hover:border-border p-6 transition-all group"
           >
             <Linkedin
               className="w-5 h-5 text-secondary mb-4"
               strokeWidth={1.6}
             />
-            <div className="text-xs uppercase tracking-[0.18em] text-white/40 font-semibold mb-1">
+            <div className="text-xs uppercase tracking-[0.18em] text-foreground/40 font-semibold mb-1">
               LinkedIn
             </div>
-            <div className="text-white font-medium group-hover:text-secondary transition-colors">
+            <div className="text-foreground font-medium group-hover:text-secondary transition-colors">
               Jaabili Technologies
             </div>
-            <div className="text-xs text-white/45 mt-1">
+            <div className="text-xs text-foreground/45 mt-1">
               Connect with the team and follow along
             </div>
           </a>
@@ -132,19 +132,19 @@ export default function Contact() {
             href="https://www.instagram.com/jaabili.studio/"
             target="_blank"
             rel="noopener noreferrer"
-            className="rounded-2xl border border-white/10 bg-card/30 hover:bg-card/50 hover:border-white/20 p-6 transition-all group"
+            className="rounded-2xl border border-border bg-card/30 hover:bg-card/50 hover:border-border p-6 transition-all group"
           >
             <Instagram
               className="w-5 h-5 text-accent mb-4"
               strokeWidth={1.6}
             />
-            <div className="text-xs uppercase tracking-[0.18em] text-white/40 font-semibold mb-1">
+            <div className="text-xs uppercase tracking-[0.18em] text-foreground/40 font-semibold mb-1">
               Instagram
             </div>
-            <div className="text-white font-medium group-hover:text-accent transition-colors">
+            <div className="text-foreground font-medium group-hover:text-accent transition-colors">
               @jaabili.studio
             </div>
-            <div className="text-xs text-white/45 mt-1">
+            <div className="text-xs text-foreground/45 mt-1">
               Behind-the-scenes and product updates
             </div>
           </a>
@@ -153,18 +153,18 @@ export default function Contact() {
         {/* Form */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
           <div className="lg:col-span-4 reveal-up">
-            <h2 className="text-2xl md:text-3xl text-white font-display font-semibold tracking-tight mb-4">
+            <h2 className="text-2xl md:text-3xl text-foreground font-display font-semibold tracking-tight mb-4">
               Send us a message
             </h2>
-            <p className="text-white/55 leading-relaxed font-light mb-6">
+            <p className="text-foreground/55 leading-relaxed font-light mb-6">
               Tell us what's on your mind. The form below opens your email
               client with everything pre-filled — your message lands in the
               same inbox a Jaabili team member checks daily.
             </p>
-            <div className="text-xs text-white/40">
+            <div className="text-xs text-foreground/40">
               Prefer not to use a form? Email us directly at{" "}
               <a
-                className="text-white underline underline-offset-2"
+                className="text-foreground underline underline-offset-2"
                 href="mailto:jaabilitech@gmail.com"
               >
                 jaabilitech@gmail.com
@@ -174,7 +174,7 @@ export default function Contact() {
           </div>
 
           <div className="lg:col-span-8 reveal-up">
-            <div className="rounded-3xl border border-white/10 bg-card/40 backdrop-blur-md p-8 md:p-10 relative overflow-hidden">
+            <div className="rounded-3xl border border-border bg-card/40 backdrop-blur-md p-8 md:p-10 relative overflow-hidden">
               <div className="absolute -top-24 -right-24 w-64 h-64 bg-primary/8 rounded-full blur-[80px] pointer-events-none" />
 
               {submitted ? (
@@ -182,10 +182,10 @@ export default function Contact() {
                   <div className="w-14 h-14 rounded-full bg-primary/15 border border-primary/30 flex items-center justify-center mx-auto mb-5">
                     <CheckCircle2 className="w-6 h-6 text-primary" />
                   </div>
-                  <h3 className="text-2xl font-display font-semibold text-white tracking-tight mb-3">
+                  <h3 className="text-2xl font-display font-semibold text-foreground tracking-tight mb-3">
                     Your email is on its way
                   </h3>
-                  <p className="text-white/60 max-w-md mx-auto leading-relaxed mb-6">
+                  <p className="text-foreground/60 max-w-md mx-auto leading-relaxed mb-6">
                     We've opened your email client with your message ready to
                     send. Once it lands in our inbox we'll reply within one
                     working day.
@@ -200,7 +200,7 @@ export default function Contact() {
                         message: "",
                       });
                     }}
-                    className="text-sm text-white/70 hover:text-white underline underline-offset-4"
+                    className="text-sm text-foreground/70 hover:text-foreground underline underline-offset-4"
                   >
                     Send another message
                   </button>
@@ -211,7 +211,7 @@ export default function Contact() {
                   className="space-y-5 relative z-10"
                 >
                   <div>
-                    <label className="text-xs font-semibold uppercase tracking-[0.16em] text-white/55 mb-3 block">
+                    <label className="text-xs font-semibold uppercase tracking-[0.16em] text-foreground/55 mb-3 block">
                       What's this about?
                     </label>
                     <div className="grid grid-cols-2 gap-2">
@@ -225,12 +225,12 @@ export default function Contact() {
                             onClick={() => setTopic(t.id)}
                             className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-sm transition-all text-left ${
                               selected
-                                ? "border-primary/50 bg-primary/10 text-white"
-                                : "border-white/10 bg-white/5 text-white/70 hover:border-white/25 hover:text-white"
+                                ? "border-primary/50 bg-primary/10 text-foreground"
+                                : "border-border bg-foreground/5 text-foreground/70 hover:border-border hover:text-foreground"
                             }`}
                           >
                             <Icon
-                              className={`w-4 h-4 shrink-0 ${selected ? "text-primary" : "text-white/50"}`}
+                              className={`w-4 h-4 shrink-0 ${selected ? "text-primary" : "text-foreground/50"}`}
                               strokeWidth={1.6}
                             />
                             <span className="truncate">{t.label}</span>
@@ -242,13 +242,13 @@ export default function Contact() {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <label className="text-sm font-medium text-white/70">
+                      <label className="text-sm font-medium text-foreground/70">
                         Your name
                       </label>
                       <input
                         required
                         type="text"
-                        className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/25 focus:outline-none focus:border-primary transition-colors text-sm"
+                        className="w-full bg-foreground/[0.04] border border-border rounded-xl px-4 py-3 text-foreground placeholder:text-foreground/25 focus:outline-none focus:border-primary transition-colors text-sm"
                         placeholder="Jane Doe"
                         value={formData.name}
                         onChange={(e) =>
@@ -257,13 +257,13 @@ export default function Contact() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-sm font-medium text-white/70">
+                      <label className="text-sm font-medium text-foreground/70">
                         Email
                       </label>
                       <input
                         required
                         type="email"
-                        className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/25 focus:outline-none focus:border-primary transition-colors text-sm"
+                        className="w-full bg-foreground/[0.04] border border-border rounded-xl px-4 py-3 text-foreground placeholder:text-foreground/25 focus:outline-none focus:border-primary transition-colors text-sm"
                         placeholder="jane@company.com"
                         value={formData.email}
                         onChange={(e) =>
@@ -274,15 +274,15 @@ export default function Contact() {
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-white/70">
+                    <label className="text-sm font-medium text-foreground/70">
                       Company{" "}
-                      <span className="text-white/30 font-normal">
+                      <span className="text-foreground/30 font-normal">
                         (optional)
                       </span>
                     </label>
                     <input
                       type="text"
-                      className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/25 focus:outline-none focus:border-primary transition-colors text-sm"
+                      className="w-full bg-foreground/[0.04] border border-border rounded-xl px-4 py-3 text-foreground placeholder:text-foreground/25 focus:outline-none focus:border-primary transition-colors text-sm"
                       placeholder="Company name"
                       value={formData.company}
                       onChange={(e) =>
@@ -292,13 +292,13 @@ export default function Contact() {
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-white/70">
+                    <label className="text-sm font-medium text-foreground/70">
                       Your message
                     </label>
                     <textarea
                       required
                       rows={5}
-                      className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/25 focus:outline-none focus:border-primary transition-colors resize-none text-sm leading-relaxed"
+                      className="w-full bg-foreground/[0.04] border border-border rounded-xl px-4 py-3 text-foreground placeholder:text-foreground/25 focus:outline-none focus:border-primary transition-colors resize-none text-sm leading-relaxed"
                       placeholder="Tell us what you're running into, what you're trying to build, or what you'd like to know…"
                       value={formData.message}
                       onChange={(e) =>
@@ -309,13 +309,13 @@ export default function Contact() {
 
                   <button
                     type="submit"
-                    className="w-full inline-flex items-center justify-center gap-2 bg-white text-black font-semibold rounded-xl py-3 px-4 hover:bg-white/90 transition-colors"
+                    className="w-full inline-flex items-center justify-center gap-2 bg-foreground text-background font-semibold rounded-xl py-3 px-4 hover:bg-foreground/90 transition-colors"
                   >
                     Send message
                     <Send className="w-4 h-4" />
                   </button>
 
-                  <p className="text-xs text-white/40 text-center pt-1">
+                  <p className="text-xs text-foreground/40 text-center pt-1">
                     By sending you agree we may reply to the email you provide.
                   </p>
                 </form>

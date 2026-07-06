@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
-import type { User } from "firebase/auth";
+import { useGoogleLogin } from "@react-oauth/google";
 import { useAuth } from "@/lib/auth-context";
+import type { AuthUser } from "@/lib/auth-context";
 
 interface SocialButtonsProps {
-  onSuccess: (user: User) => void;
+  onSuccess: (user: AuthUser) => void;
   onError: (message: string) => void;
   label?: string;
 }
@@ -14,26 +15,31 @@ export function SocialButtons({
   onError,
   label = "Continue with Google",
 }: SocialButtonsProps) {
-  const { signInWithSocial } = useAuth();
+  const { signInWithGoogleAccessToken } = useAuth();
   const [pending, setPending] = useState(false);
 
-  const handleGoogle = async () => {
+  const login = useGoogleLogin({
+    onSuccess: async (tokenResponse) => {
+      try {
+        const user = await signInWithGoogleAccessToken(tokenResponse.access_token);
+        onSuccess(user);
+      } catch (err) {
+        onError(err instanceof Error ? err.message : "Google sign-in failed.");
+      } finally {
+        setPending(false);
+      }
+    },
+    onError: () => {
+      setPending(false);
+      onError("Google sign-in failed.");
+    },
+    onNonOAuthError: () => setPending(false),
+  });
+
+  const handleGoogle = () => {
     if (pending) return;
     setPending(true);
-    try {
-      const user = await signInWithSocial("google");
-      onSuccess(user);
-    } catch (err: unknown) {
-      const code = (err as { code?: string })?.code ?? "";
-      if (code === "auth/popup-closed-by-user") return;
-      if (code === "auth/operation-not-allowed") {
-        onError("Enable Google in Firebase Authentication > Sign-in method.");
-        return;
-      }
-      onError(err instanceof Error ? err.message : "Google sign-in failed.");
-    } finally {
-      setPending(false);
-    }
+    login();
   };
 
   return (
@@ -41,7 +47,7 @@ export function SocialButtons({
       type="button"
       onClick={handleGoogle}
       disabled={pending}
-      className="flex w-full items-center justify-center gap-3 rounded-2xl border border-white/10 bg-white/[0.055] px-4 py-3.5 text-sm font-semibold text-white transition hover:bg-white/[0.09] disabled:cursor-not-allowed disabled:opacity-70"
+      className="flex w-full items-center justify-center gap-3 rounded-2xl border border-border bg-foreground/[0.055] px-4 py-3.5 text-sm font-semibold text-foreground transition hover:bg-foreground/[0.09] disabled:cursor-not-allowed disabled:opacity-70"
     >
       {pending ? (
         <Loader2 className="h-5 w-5 animate-spin" />

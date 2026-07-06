@@ -27,6 +27,8 @@ export interface OnboardingPrefs {
   paymentGateway?: string;
   paymentMode?: string;
   paymentProvider?: string;
+  tenantId?: string;
+  widgetPublicKey?: string | null;
   completed: true;
   completedAt: string;
 }

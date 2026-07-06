@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -28,10 +28,20 @@ import {
   ChevronDown,
   Rocket,
 } from "lucide-react";
-import logo from "@assets/jaabili_logo_clean.png";
+import { useTheme } from "next-themes";
+import logoDark from "@assets/jaabili-logo-dark.png";
+import logoLight from "@assets/jaabili-logo-light.png";
+import iconDark from "@assets/jaabili-icon-dark.png";
+import iconLight from "@assets/jaabili-icon-light.png";
 import { useAuth } from "@/lib/auth-context";
 import { createPineLabsCheckout, extractCheckoutUrl } from "@/lib/billing-api";
 import { saveOnboarding } from "@/lib/onboarding";
+import {
+  createWebsiteSalesTenant,
+  registerKnowledgeText,
+  registerKnowledgeUrl,
+  uploadKnowledgeFile,
+} from "@/lib/agent-api";
 import { cn } from "@/lib/utils";
 
 type WorkspaceType = "business" | "personal" | "team";
@@ -48,13 +58,13 @@ const workspaceTypes = [
     id: "personal",
     label: "Personal",
     icon: Users,
-    body: "Learning, research, writing, and daily work.",
+    body: "Learning, research, writing, and daily work. Coming soon.",
   },
   {
     id: "team",
     label: "Team / Organization",
     icon: HeartHandshake,
-    body: "Internal knowledge, projects, docs, and support.",
+    body: "Internal knowledge, projects, docs, and support. Coming soon.",
   },
 ] satisfies Array<{
   id: WorkspaceType;
@@ -74,6 +84,93 @@ const businessIndustries = [
   "Consulting",
   "Other",
 ];
+
+const industryInsights: Record<
+  string,
+  { tip: string; placeholder: string; starterFaqs: string[] }
+> = {
+  "Real Estate": {
+    tip: "78% of buyers go with whichever agent replies first. Nova answers listing questions instantly, even after hours.",
+    placeholder: "We sell luxury villas in Hyderabad, provide property tours, and help buyers shortlist homes.",
+    starterFaqs: [
+      "Is this property still available?",
+      "What's the price and any hidden costs?",
+      "Can I schedule a viewing this week?",
+    ],
+  },
+  Healthcare: {
+    tip: "Clinics miss about 40% of appointment requests after hours. Nova can answer insurance, hours, and booking questions while your front desk is busy.",
+    placeholder: "We're a family clinic offering general checkups, vaccinations, and specialist referrals.",
+    starterFaqs: [
+      "Do you accept my insurance?",
+      "What are your clinic hours?",
+      "How do I book a new patient appointment?",
+    ],
+  },
+  Education: {
+    tip: "Replying within 5 minutes converts up to 21x better than a 30-minute delay. Nova keeps prospective families engaged instantly.",
+    placeholder: "We're a K-12 school offering CBSE curriculum with a focus on sports and arts.",
+    starterFaqs: [
+      "What's the tuition and fee structure?",
+      "What's the admissions process and deadline?",
+      "Can I schedule a campus visit?",
+    ],
+  },
+  "Interior Design": {
+    tip: "Pre-qualifying budget and scope before a call saves you hours. Nova can screen serious leads automatically.",
+    placeholder: "We design and renovate homes and offices, from full remodels to styling consultations.",
+    starterFaqs: [
+      "What's your starting budget for a project like mine?",
+      "Do you handle full renovations or just styling?",
+      "What's your typical project timeline?",
+    ],
+  },
+  Restaurant: {
+    tip: "Restaurants miss up to 43% of calls during dinner rush. Nova answers hours, reservations, and catering questions so you don't lose business to a busy line.",
+    placeholder: "We're a family restaurant serving North Indian cuisine, open for dine-in, takeout, and catering.",
+    starterFaqs: [
+      "Are you open right now and what are your hours?",
+      "Do you take reservations?",
+      "Do you cater for events?",
+    ],
+  },
+  "E-commerce": {
+    tip: "Live chat lifts conversion 2.8x. Nova answers sizing, shipping, and returns questions right at the moment of purchase intent.",
+    placeholder: "We sell handcrafted leather bags and accessories, shipping across India.",
+    starterFaqs: [
+      "What's your shipping and delivery time?",
+      "What's your return or exchange policy?",
+      "Is this item in stock in my size?",
+    ],
+  },
+  Travel: {
+    tip: "Confusing pricing and slow replies are the top complaint in travel. Nova answers itinerary and pricing questions instantly.",
+    placeholder: "We plan custom domestic and international trips, including flights, stays, and local experiences.",
+    starterFaqs: [
+      "What's included in this package price?",
+      "What's the cancellation or refund policy?",
+      "Can you customize an itinerary for my dates?",
+    ],
+  },
+  Consulting: {
+    tip: "Poor lead qualification wastes paid discovery calls. Nova can ask about goals, budget, and timeline before someone books time with you.",
+    placeholder: "We provide business strategy and growth consulting for small and mid-sized companies.",
+    starterFaqs: [
+      "What's your pricing and packages?",
+      "What's the process to get started?",
+      "Do you offer a free consultation?",
+    ],
+  },
+  Other: {
+    tip: "Nova learns from whatever you give it. Add your most common customer questions to get started fastest.",
+    placeholder: "Describe what your business sells or does, and who your typical customer is.",
+    starterFaqs: [
+      "What are your hours or availability?",
+      "What's the pricing for your main service?",
+      "How do I get started or book with you?",
+    ],
+  },
+};
 
 const goalCatalog = {
   business: [
@@ -192,28 +289,31 @@ const agentCatalog = {
 
 const plans = [
   {
-    id: "starter",
-    name: "Starter",
-    price: "₹2,999/month",
-    badge: "",
+    id: "free",
+    name: "Free",
+    price: "$0/forever",
+    badge: "Available now",
     limit: 1,
-    features: ["1 Agent", "500 Conversations", "Basic Knowledge Base", "Starter Analytics"],
+    available: true,
+    features: ["1 active agent", "500 conversations/month", "All starter templates", "Community support"],
   },
   {
-    id: "growth",
-    name: "Growth",
-    price: "₹6,999/month",
-    badge: "Most Popular",
-    limit: 4,
-    features: ["4 Agents", "5,000 Conversations", "WhatsApp/Email workflows", "Lead Follow-Up"],
+    id: "basic",
+    name: "Basic",
+    price: "Coming soon",
+    badge: "",
+    limit: 3,
+    available: false,
+    features: ["Up to 3 active agents", "5,000 conversations/month", "Knowledge base sync", "Email support"],
   },
   {
-    id: "scale",
+    id: "pro",
     name: "Pro",
-    price: "₹14,999/month",
-    badge: "Best for teams",
-    limit: 99,
-    features: ["Unlimited Agents", "Advanced Analytics", "Custom Workflows", "Priority Support"],
+    price: "Coming soon",
+    badge: "",
+    limit: 15,
+    available: false,
+    features: ["Up to 15 active agents", "50,000 conversations/month", "Multi-LLM routing", "Priority support"],
   },
 ];
 
@@ -303,16 +403,25 @@ const defaultForm: SetupForm = {
 export default function Onboarding() {
   const [, setLocation] = useLocation();
   const { user, loading } = useAuth();
+  const { resolvedTheme } = useTheme();
+  const [themeMounted, setThemeMounted] = useState(false);
+  useEffect(() => setThemeMounted(true), []);
+  const logo = themeMounted && resolvedTheme === "light" ? logoLight : logoDark;
   const [step, setStep] = useState(0);
   const [workspaceType, setWorkspaceType] = useState<WorkspaceType | null>(null);
   const [experience, setExperience] = useState<ExperienceLevel>("beginner");
   const [form, setForm] = useState<SetupForm>(defaultForm);
+  const [knowledgeFiles, setKnowledgeFiles] = useState<File[]>([]);
   const [goals, setGoals] = useState<string[]>([]);
-  const [selectedPlan, setSelectedPlan] = useState("growth");
+  const [selectedPlan, setSelectedPlan] = useState("free");
   const [couponCode, setCouponCode] = useState("");
   const [paymentMode, setPaymentMode] = useState<"trial" | "gateway">("trial");
   const [paymentProvider, setPaymentProvider] = useState<"pine-labs">("pine-labs");
   const [buildIndex, setBuildIndex] = useState(0);
+  const provisionRef = useRef<Promise<{
+    tenantId: string;
+    widgetPublicKey: string | null;
+  } | null> | null>(null);
   const [draftConsent, setDraftConsent] = useState(false);
   const [termsConsent, setTermsConsent] = useState(false);
 
@@ -340,7 +449,7 @@ export default function Onboarding() {
           : ["knowledge", "documentation"];
     return Array.from(new Set(ids.length ? ids : fallback));
   }, [activeGoals, activeType, goals]);
-  const plan = plans.find((item) => item.id === selectedPlan) ?? plans[1];
+  const plan = plans.find((item) => item.id === selectedPlan) ?? plans[0];
   const finalAgents = recommendedAgents.slice(0, plan.limit);
   useEffect(() => {
     if (step !== 6) return;
@@ -354,12 +463,17 @@ export default function Onboarding() {
         return value + 1;
       });
     }, 650);
+
+    if (activeType === "business" && !provisionRef.current) {
+      provisionRef.current = provisionBusinessTenant();
+    }
+
     return () => window.clearInterval(timer);
   }, [step]);
 
   useEffect(() => {
     if (step !== 6 || buildIndex < buildSteps.length - 1) return;
-    const timer = window.setTimeout(() => void persistAndGoDashboard(), 700);
+    const timer = window.setTimeout(() => setStep(7), 700);
     return () => window.clearTimeout(timer);
   }, [step, buildIndex]);
 
@@ -397,7 +511,49 @@ export default function Onboarding() {
             ? draftConsent && termsConsent
           : true;
 
-  const persistWorkspace = () => {
+  const provisionBusinessTenant = async (): Promise<{
+    tenantId: string;
+    widgetPublicKey: string | null;
+  } | null> => {
+    try {
+      const tenant = await createWebsiteSalesTenant({
+        name: form.businessName.trim() || `${firstName}'s Business`,
+        websiteUrl: form.websiteUrl.trim() || undefined,
+        industry: form.industry || undefined,
+        contactEmail: ownerEmail || undefined,
+      });
+
+      const notes = [form.services, form.knowledgeNotes].filter(Boolean).join("\n\n");
+      await Promise.allSettled([
+        form.websiteUrl.trim()
+          ? registerKnowledgeUrl({
+              tenantId: tenant.id,
+              title: `${form.businessName || "Business"} website`,
+              url: form.websiteUrl.trim(),
+            })
+          : Promise.resolve(),
+        notes.trim()
+          ? registerKnowledgeText({
+              tenantId: tenant.id,
+              title: "Business details",
+              text: notes,
+            })
+          : Promise.resolve(),
+        ...knowledgeFiles.map((file) =>
+          uploadKnowledgeFile({ tenantId: tenant.id, file, title: file.name }),
+        ),
+      ]);
+
+      return { tenantId: tenant.id, widgetPublicKey: tenant.widgetPublicKey };
+    } catch (err) {
+      console.error("Website Sales Agent tenant setup failed", err);
+      return null;
+    }
+  };
+
+  const persistWorkspace = (
+    provision?: { tenantId: string; widgetPublicKey: string | null } | null,
+  ) => {
     const workspaceName =
       activeType === "business"
         ? form.businessName.trim()
@@ -425,7 +581,7 @@ export default function Onboarding() {
           : activeType === "team"
             ? form.teamUseCase
             : [form.personalNotes, form.personalTools].filter(Boolean).join(" - "),
-      monthlyLeads: selectedPlan === "starter" ? "0-100" : "100-500",
+      monthlyLeads: selectedPlan === "free" ? "0-100" : "100-500",
       salesOwner: form.handoffOwner || ownerName,
       knowledgeSources: [
         activeType === "business" ? "Services" : "Workspace notes",
@@ -449,6 +605,8 @@ export default function Onboarding() {
       paymentProvider,
       aiExperience: experience,
       workspaceOwnerEmail: ownerEmail,
+      tenantId: provision?.tenantId,
+      widgetPublicKey: provision?.widgetPublicKey ?? null,
     });
   };
 
@@ -483,7 +641,9 @@ export default function Onboarding() {
   };
 
   const persistAndGoDashboard = async () => {
-    persistWorkspace();
+    const provision =
+      activeType === "business" ? await (provisionRef.current ?? Promise.resolve(null)) : null;
+    persistWorkspace(provision);
 
     if (paymentMode === "gateway") {
       await startPineLabsCheckout();
@@ -510,8 +670,8 @@ export default function Onboarding() {
   const back = () => setStep((value) => Math.max(0, value - 1));
 
   return (
-    <div className="h-full min-h-0 overflow-y-auto overflow-x-hidden bg-[#061321] text-white">
-      <header className="sticky top-0 z-20 border-b border-[#9fb8d7]/12 bg-[#061321]/95 backdrop-blur-xl">
+    <div className="h-full min-h-0 overflow-y-auto overflow-x-hidden bg-background text-foreground">
+      <header className="sticky top-0 z-20 border-b border-foreground/12 bg-background/95 backdrop-blur-xl">
         <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-5 sm:px-8">
           <Link href="/" className="flex items-center">
             <img
@@ -523,7 +683,7 @@ export default function Onboarding() {
           <div className="hidden md:block" />
           <Link
             href="/"
-            className="inline-flex items-center gap-2 rounded-full border border-[#9fb8d7]/16 bg-[#102236] px-4 py-2 text-sm font-semibold text-[#dbe8ff] transition hover:border-[#55e7ff]/35 hover:bg-[#15314c]"
+            className="inline-flex items-center gap-2 rounded-full border border-foreground/16 bg-card px-4 py-2 text-sm font-semibold text-foreground transition hover:border-primary/35 hover:bg-primary/10"
           >
             <ArrowLeft className="h-4 w-4" />
             Back to home
@@ -534,7 +694,7 @@ export default function Onboarding() {
       <main className="mx-auto min-h-[calc(100dvh-80px)] w-full max-w-7xl px-4 py-6 sm:px-8">
         <TopStepper step={step} />
 
-        <section className="relative mx-auto mt-6 min-h-[460px] max-w-6xl overflow-hidden rounded-[24px] border border-[#9fb8d7]/14 bg-[#0b1a2a]/72 p-4 shadow-[0_28px_90px_rgba(0,0,0,0.28)] sm:p-7 lg:min-h-[520px]">
+        <section className="relative mx-auto mt-6 min-h-[460px] max-w-6xl overflow-hidden rounded-[24px] border border-foreground/14 bg-card/72 p-4 shadow-[0_28px_90px_rgba(0,0,0,0.28)] sm:p-7 lg:min-h-[520px]">
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_24%_8%,rgba(85,231,255,0.12),transparent_28%),radial-gradient(circle_at_76%_84%,rgba(139,92,246,0.11),transparent_30%)]" />
           <AnimatePresence mode="wait">
             <motion.div
@@ -579,6 +739,8 @@ export default function Onboarding() {
                   form={form}
                   updateForm={updateForm}
                   recommendedAgents={recommendedAgents}
+                  files={knowledgeFiles}
+                  onFilesChange={setKnowledgeFiles}
                 />
               )}
               {step === 5 && (
@@ -603,6 +765,7 @@ export default function Onboarding() {
                   form={form}
                   goals={goals}
                   plan={plan}
+                  fileCount={knowledgeFiles.length}
                   draftConsent={draftConsent}
                   termsConsent={termsConsent}
                   setDraftConsent={setDraftConsent}
@@ -613,12 +776,12 @@ export default function Onboarding() {
           </AnimatePresence>
 
           {step !== 6 && (
-            <div className="relative mt-8 flex items-center justify-between border-t border-[#9fb8d7]/12 pt-5">
+            <div className="relative mt-8 flex items-center justify-between border-t border-foreground/12 pt-5">
               <button
                 type="button"
                 onClick={back}
                 disabled={step === 0}
-                className="inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm text-[#c9d5ef]/60 transition hover:bg-white/7 hover:text-white disabled:pointer-events-none disabled:opacity-30"
+                className="inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm text-foreground/60 transition hover:bg-foreground/7 hover:text-foreground disabled:pointer-events-none disabled:opacity-30"
               >
                 <ArrowLeft className="h-4 w-4" />
                 Back
@@ -630,8 +793,8 @@ export default function Onboarding() {
                 className={cn(
                   "inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-semibold transition disabled:pointer-events-none disabled:opacity-40",
                   step === 7
-                    ? "bg-gradient-to-r from-[#8b5cf6] to-[#16bfd3] text-white shadow-[0_16px_42px_rgba(22,191,211,0.22)] hover:brightness-110"
-                    : "bg-white text-black hover:bg-white/90",
+                    ? "bg-gradient-to-r from-accent to-primary text-foreground shadow-[0_16px_42px_rgba(22,191,211,0.22)] hover:brightness-110"
+                    : "bg-foreground text-background hover:opacity-90",
                 )}
               >
                 {step === 5 && paymentMode === "gateway"
@@ -662,6 +825,11 @@ function WelcomeStep({
   experience: ExperienceLevel;
   setExperience: (level: ExperienceLevel) => void;
 }) {
+  const { resolvedTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  const logo = mounted && resolvedTheme === "light" ? logoLight : logoDark;
+
   return (
     <div className="mx-auto flex max-w-3xl flex-col items-center py-4 text-center sm:py-8">
       <motion.div
@@ -675,10 +843,10 @@ function WelcomeStep({
           alt="Jaabili Tech Solutions"
           className="h-20 w-auto drop-shadow-[0_0_28px_rgba(85,231,255,0.24)] sm:h-24"
         />
-        <h1 className="mt-7 text-3xl font-semibold tracking-tight text-white sm:text-5xl">
+        <h1 className="mt-7 text-3xl font-semibold tracking-tight text-foreground sm:text-5xl">
           Welcome, {firstName}
         </h1>
-        <p className="mt-3 max-w-md text-sm leading-6 text-[#c9d5ef]/60">
+        <p className="mt-3 max-w-md text-sm leading-6 text-foreground/60">
           Choose how much guidance you want while we set up your workspace.
         </p>
       </motion.div>
@@ -700,17 +868,17 @@ function WelcomeStep({
               className={cn(
                 "rounded-2xl border p-4 text-left transition",
                 experience === level.id
-                  ? "border-[#55e7ff]/45 bg-[#0f3440] shadow-[0_18px_44px_rgba(85,231,255,0.08)]"
-                  : "border-[#9fb8d7]/14 bg-[#111d2f] hover:border-[#9fb8d7]/28",
+                  ? "border-primary/45 bg-primary/10 shadow-[0_18px_44px_rgba(85,231,255,0.08)]"
+                  : "border-foreground/14 bg-card hover:border-foreground/28",
               )}
             >
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <div className="font-semibold text-white">{level.label}</div>
-                  <p className="mt-2 text-sm leading-6 text-[#c9d5ef]/55">{level.body}</p>
+                  <div className="font-semibold text-foreground">{level.label}</div>
+                  <p className="mt-2 text-sm leading-6 text-foreground/55">{level.body}</p>
                 </div>
                 {experience === level.id && (
-                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#55e7ff] text-[#061321]">
+                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-background">
                     <Check className="h-4 w-4" />
                   </span>
                 )}
@@ -748,22 +916,22 @@ function WorkspaceTypeStep({
               className={cn(
                 "rounded-[24px] border p-5 text-left transition",
                 isSelected
-                  ? "border-[#6ee7d8]/45 bg-[#102c2a]"
-                  : "border-white/10 bg-white/[0.035] hover:border-white/20",
+                  ? "border-primary/45 bg-primary/10"
+                  : "border-border bg-foreground/[0.035] hover:border-border",
               )}
             >
               <div className="flex items-start justify-between">
-                <span className="rounded-full border border-[#9fb8d7]/14 bg-white/[0.035] px-3 py-1 text-xs font-semibold text-[#c9d5ef]/55">
-                  {type.id === "business" ? "Primary" : "Optional"}
+                <span className="rounded-full border border-foreground/14 bg-foreground/[0.035] px-3 py-1 text-xs font-semibold text-foreground/55">
+                  {type.id === "business" ? "Primary" : "Coming soon"}
                 </span>
                 {isSelected && (
-                  <span className="rounded-full bg-[#6ee7d8] p-1 text-black">
+                  <span className="rounded-full bg-primary p-1 text-primary-foreground">
                     <Check className="h-4 w-4" />
                   </span>
                 )}
               </div>
               <div className="mt-5 text-lg font-semibold">{type.label}</div>
-              <p className="mt-2 text-sm leading-6 text-white/52">{type.body}</p>
+              <p className="mt-2 text-sm leading-6 text-foreground/52">{type.body}</p>
             </button>
           );
         })}
@@ -802,7 +970,7 @@ function DetailsStep({
         />
         <div className="mt-6 space-y-6">
           <div>
-            <div className="mb-3 text-sm font-semibold text-white/72">Choose focus areas</div>
+            <div className="mb-3 text-sm font-semibold text-foreground/72">Choose focus areas</div>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {personalQuickContexts.map((item) => {
                 const selected = form.personalNotes
@@ -817,8 +985,8 @@ function DetailsStep({
                     className={cn(
                       "rounded-2xl border px-4 py-3 text-left text-sm font-semibold transition",
                       selected
-                        ? "border-[#55e7ff]/45 bg-[#0f3440] text-white"
-                        : "border-[#9fb8d7]/14 bg-[#111d2f] text-[#c9d5ef]/72 hover:border-[#9fb8d7]/28",
+                        ? "border-primary/45 bg-primary/10 text-foreground"
+                        : "border-foreground/14 bg-card text-foreground/72 hover:border-foreground/28",
                     )}
                   >
                     {item}
@@ -829,7 +997,7 @@ function DetailsStep({
           </div>
 
           <div>
-            <div className="mb-3 text-sm font-semibold text-white/72">Preferred answer style</div>
+            <div className="mb-3 text-sm font-semibold text-foreground/72">Preferred answer style</div>
             <div className="flex flex-wrap gap-2">
               {personalOutputStyles.map((style) => (
                 <button
@@ -839,8 +1007,8 @@ function DetailsStep({
                   className={cn(
                     "rounded-full border px-4 py-2 text-sm transition",
                     form.personalOutputStyle === style
-                      ? "border-[#55e7ff]/45 bg-[#55e7ff]/12 text-[#a9f7ff]"
-                      : "border-[#9fb8d7]/14 bg-[#111d2f] text-[#c9d5ef]/60 hover:text-white",
+                      ? "border-primary/45 bg-primary/12 text-primary"
+                      : "border-foreground/14 bg-card text-foreground/60 hover:text-foreground",
                   )}
                 >
                   {style}
@@ -903,6 +1071,8 @@ function DetailsStep({
     );
   }
 
+  const insight = industryInsights[form.industry] ?? industryInsights.Other;
+
   return (
     <div className="mx-auto max-w-4xl">
       <StepHeader
@@ -910,7 +1080,11 @@ function DetailsStep({
         title="Business profile"
         subtitle="Basic company context for the first agents."
       />
-      <div className="mt-6 grid gap-4 md:grid-cols-2">
+      <div className="mt-6 rounded-2xl border border-primary/18 bg-primary/8 px-4 py-3 text-sm leading-6 text-foreground/80">
+        <span className="font-semibold text-primary">{form.industry}: </span>
+        {insight.tip}
+      </div>
+      <div className="mt-4 grid gap-4 md:grid-cols-2">
         <Field label="Business Name">
           <input
             value={form.businessName}
@@ -938,16 +1112,16 @@ function DetailsStep({
             className="jaabili-input"
           />
         </Field>
-        <div className="rounded-3xl border border-[#6ee7d8]/18 bg-[#6ee7d8]/8 p-4">
-          <Globe2 className="mb-3 h-5 w-5 text-[#6ee7d8]" />
+        <div className="rounded-3xl border border-primary/18 bg-primary/8 p-4">
+          <Globe2 className="mb-3 h-5 w-5 text-primary" />
           <div className="text-sm font-semibold">Smart Website Import</div>
-          <p className="mt-2 text-sm leading-6 text-white/52">Import services, FAQs, about, and contacts.</p>
+          <p className="mt-2 text-sm leading-6 text-foreground/52">Import services, FAQs, about, and contacts.</p>
         </div>
         <Field label="Services" className="md:col-span-2">
           <textarea
             value={form.services}
             onChange={(event) => updateForm("services", event.target.value)}
-            placeholder="We sell luxury villas in Hyderabad, provide property tours, and help buyers shortlist homes."
+            placeholder={insight.placeholder}
             className="jaabili-input min-h-28 resize-none"
           />
         </Field>
@@ -1027,14 +1201,14 @@ function GoalsStep({
               className={cn(
                 "rounded-2xl border p-4 text-left transition",
                 selected
-                  ? "border-[#6ee7d8]/45 bg-[#102c2a]"
-                  : "border-white/10 bg-white/[0.035] hover:border-white/20",
+                  ? "border-primary/45 bg-primary/10"
+                  : "border-border bg-foreground/[0.035] hover:border-border",
               )}
             >
               <div className="flex items-start justify-between gap-4">
                 <span className="text-base font-semibold">{goal.label}</span>
                 {selected && (
-                  <span className="rounded-full bg-[#6ee7d8] p-1 text-black">
+                  <span className="rounded-full bg-primary p-1 text-primary-foreground">
                     <Check className="h-4 w-4" />
                   </span>
                 )}
@@ -1053,14 +1227,31 @@ function KnowledgeStep({
   form,
   updateForm,
   recommendedAgents,
+  files,
+  onFilesChange,
 }: {
   workspaceType: WorkspaceType;
   form: SetupForm;
   updateForm: (key: keyof SetupForm, value: string | string[]) => void;
   recommendedAgents: string[];
+  files: File[];
+  onFilesChange: (files: File[]) => void;
 }) {
   const addFakeFile = (name: string) => {
     updateForm("uploadedFiles", Array.from(new Set([...form.uploadedFiles, name])));
+  };
+  const addFiles = (list: FileList | null) => {
+    if (!list || list.length === 0) return;
+    const next = [...files];
+    for (const file of Array.from(list)) {
+      if (!next.some((existing) => existing.name === file.name && existing.size === file.size)) {
+        next.push(file);
+      }
+    }
+    onFilesChange(next);
+  };
+  const removeFile = (name: string) => {
+    onFilesChange(files.filter((file) => file.name !== name));
   };
   const isPersonal = workspaceType === "personal";
   const isTeam = workspaceType === "team";
@@ -1090,7 +1281,7 @@ function KnowledgeStep({
       <div className="mt-6 grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
         <div className="space-y-5">
           <div>
-            <div className="mb-3 text-sm font-semibold text-white/72">Available now</div>
+            <div className="mb-3 text-sm font-semibold text-foreground/72">Available now</div>
             <div className="grid gap-2 sm:grid-cols-3">
               {sourceOptions.map((option) => (
                 <button
@@ -1100,8 +1291,8 @@ function KnowledgeStep({
                   className={cn(
                     "rounded-2xl border px-4 py-3 text-left text-sm font-semibold transition",
                     form.uploadedFiles.includes(option)
-                      ? "border-[#55e7ff]/45 bg-[#0f3440] text-white"
-                      : "border-[#9fb8d7]/14 bg-[#111d2f] text-[#c9d5ef]/68 hover:border-[#9fb8d7]/28",
+                      ? "border-primary/45 bg-primary/10 text-foreground"
+                      : "border-foreground/14 bg-card text-foreground/68 hover:border-foreground/28",
                   )}
                 >
                   {option}
@@ -1109,6 +1300,35 @@ function KnowledgeStep({
               ))}
             </div>
           </div>
+
+          {!isPersonal && !isTeam && (
+            <div>
+              <div className="mb-3 text-sm font-semibold text-foreground/72">
+                Common questions in {form.industry}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {(industryInsights[form.industry] ?? industryInsights.Other).starterFaqs.map(
+                  (question) => (
+                    <button
+                      key={question}
+                      type="button"
+                      onClick={() =>
+                        updateForm(
+                          "knowledgeNotes",
+                          form.knowledgeNotes
+                            ? `${form.knowledgeNotes}\n\nQ: ${question}\nA: `
+                            : `Q: ${question}\nA: `,
+                        )
+                      }
+                      className="rounded-full border border-foreground/14 bg-card px-3 py-1.5 text-left text-xs font-medium text-foreground/70 transition hover:border-primary/45 hover:text-foreground"
+                    >
+                      + {question}
+                    </button>
+                  ),
+                )}
+              </div>
+            </div>
+          )}
 
           <Field label={contextLabel} hint="Optional. Skip if you do not have this yet.">
             <textarea
@@ -1120,7 +1340,7 @@ function KnowledgeStep({
           </Field>
 
           <div>
-            <div className="mb-3 text-sm font-semibold text-white/72">
+            <div className="mb-3 text-sm font-semibold text-foreground/72">
               {isPersonal ? "Answer style" : "Agent tone"}
             </div>
             <div className="flex flex-wrap gap-2">
@@ -1132,8 +1352,8 @@ function KnowledgeStep({
                   className={cn(
                     "rounded-full border px-4 py-2 text-sm transition",
                     form.tone === tone
-                      ? "border-[#6ee7d8]/50 bg-[#6ee7d8]/12 text-[#a7fff2]"
-                      : "border-white/10 bg-white/[0.035] text-white/55 hover:text-white",
+                      ? "border-primary/50 bg-primary/12 text-primary"
+                      : "border-border bg-foreground/[0.035] text-foreground/55 hover:text-foreground",
                   )}
                 >
                   {tone}
@@ -1144,29 +1364,41 @@ function KnowledgeStep({
 
           <AgentCompactList agentIds={recommendedAgents} />
         </div>
-        <div className="rounded-3xl border border-dashed border-[#9fb8d7]/18 bg-white/[0.03] p-5">
+        <div className="rounded-3xl border border-dashed border-foreground/18 bg-foreground/[0.03] p-5">
           <div className="text-lg font-semibold">Files</div>
-          <p className="mt-2 text-sm leading-6 text-white/48">
-            Optional now. Add when available.
+          <p className="mt-2 text-sm leading-6 text-foreground/48">
+            Optional now. PDFs, Word docs, or text files — uploaded when your
+            workspace is created.
           </p>
-          <div className="mt-5 grid gap-2">
-            {["PDF", "Brochure", "Price List", "Company Profile"].map((item) => (
-              <button
-                key={item}
-                type="button"
-                onClick={() => addFakeFile(`Upload ${item}`)}
-                className="flex items-center justify-between rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-left text-sm text-white/72 transition hover:bg-white/7 hover:text-white"
-              >
-                <span>{item}</span>
-                <span className="text-xs text-white/34">Add</span>
-              </button>
-            ))}
-          </div>
-          {form.uploadedFiles.length > 0 && (
+          <label className="mt-5 flex cursor-pointer items-center justify-center rounded-2xl border border-border bg-foreground/[0.04] px-4 py-6 text-sm text-foreground/72 transition hover:bg-foreground/7 hover:text-foreground">
+            <span>Choose files to upload</span>
+            <input
+              type="file"
+              multiple
+              accept=".pdf,.doc,.docx,.txt"
+              className="hidden"
+              onChange={(event) => {
+                addFiles(event.target.files);
+                event.target.value = "";
+              }}
+            />
+          </label>
+          {files.length > 0 && (
             <div className="mt-4 space-y-2">
-              {form.uploadedFiles.map((file) => (
-                <div key={file} className="rounded-xl bg-[#6ee7d8]/10 px-3 py-2 text-xs text-[#a7fff2]">
-                  {file}
+              {files.map((file) => (
+                <div
+                  key={file.name}
+                  className="flex items-center justify-between rounded-xl bg-primary/10 px-3 py-2 text-xs text-primary"
+                >
+                  <span className="truncate">{file.name}</span>
+                  <button
+                    type="button"
+                    onClick={() => removeFile(file.name)}
+                    className="ml-2 shrink-0 text-foreground/50 hover:text-foreground"
+                    aria-label={`Remove ${file.name}`}
+                  >
+                    ✕
+                  </button>
                 </div>
               ))}
             </div>
@@ -1205,7 +1437,7 @@ function PlanStep({
         title="Choose a plan"
         subtitle="Start with trial. Upgrade after setup."
       />
-      <div className="mx-auto mt-5 inline-flex rounded-full border border-[#ffcf7a]/30 bg-[#ffcf7a]/10 px-4 py-2 text-sm font-semibold text-[#ffdf9b]">
+      <div className="mx-auto mt-5 inline-flex rounded-full border border-secondary/30 bg-secondary/10 px-4 py-2 text-sm font-semibold text-secondary">
         14 Day Free Trial - No Credit Card
       </div>
       <div className="mt-6 grid gap-4 lg:grid-cols-3">
@@ -1216,28 +1448,30 @@ function PlanStep({
             <button
               key={plan.id}
               type="button"
-              onClick={() => setSelectedPlan(plan.id)}
+              disabled={!plan.available}
+              onClick={() => plan.available && setSelectedPlan(plan.id)}
               className={cn(
                 "relative rounded-3xl border p-5 text-left transition",
+                !plan.available && "cursor-not-allowed opacity-55",
                 selected
-                  ? "border-[#6ee7d8]/50 bg-[#102c2a]"
-                  : "border-white/10 bg-white/[0.035] hover:border-white/20",
+                  ? "border-primary/50 bg-primary/10"
+                  : "border-border bg-foreground/[0.035] hover:border-border",
               )}
             >
-              {plan.badge && (
-                <span className="absolute right-5 top-5 rounded-full bg-white px-3 py-1 text-xs font-semibold text-black">
-                  {plan.badge}
-                </span>
-              )}
+              <span className="absolute right-5 top-5 rounded-full bg-foreground/10 px-3 py-1 text-xs font-semibold text-foreground/70">
+                {plan.available ? plan.badge || "Available now" : "Coming soon"}
+              </span>
               <div className="text-xl font-semibold">{plan.name}</div>
               <div className="mt-3 text-3xl font-semibold">{plan.price}</div>
-              <div className="mt-2 text-xs text-white/45">
-                Activates {includedCount}/{recommendedAgents.length} recommended agents
-              </div>
+              {plan.available && (
+                <div className="mt-2 text-xs text-foreground/45">
+                  Activates {includedCount}/{recommendedAgents.length} recommended agents
+                </div>
+              )}
               <div className="mt-6 space-y-3">
                 {plan.features.map((feature) => (
-                  <div key={feature} className="flex items-center gap-3 text-sm text-white/68">
-                    <CheckCircle2 className="h-4 w-4 text-[#6ee7d8]" />
+                  <div key={feature} className="flex items-center gap-3 text-sm text-foreground/68">
+                    <CheckCircle2 className="h-4 w-4 text-primary" />
                     {feature}
                   </div>
                 ))}
@@ -1245,101 +1479,45 @@ function PlanStep({
               <div
                 className={cn(
                   "mt-6 rounded-2xl px-4 py-3 text-center text-sm font-semibold",
-                  selected ? "bg-white text-black" : "bg-white/7 text-white",
+                  !plan.available
+                    ? "bg-foreground/7 text-foreground/50"
+                    : selected
+                      ? "bg-foreground text-background"
+                      : "bg-foreground/7 text-foreground",
                 )}
               >
-                Choose {plan.name}
+                {plan.available ? `Choose ${plan.name}` : "Notify me when ready"}
               </div>
             </button>
           );
         })}
       </div>
 
-      <div className="mt-5 rounded-3xl border border-[#9fb8d7]/14 bg-[#111d2f] p-5">
-        <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(360px,0.7fr)]">
-          <div>
-            <div className="text-sm font-semibold text-white/78">Coupon code</div>
-            <p className="mt-1 text-xs text-[#c9d5ef]/48">Optional. Apply only if you have a Jaabili offer code.</p>
-            <div className="mt-4 flex flex-col gap-3 sm:flex-row">
-            <input
-              value={couponCode}
-              onChange={(event) => setCouponCode(event.target.value.toUpperCase())}
-              placeholder="JAABILI20"
-              className="jaabili-input h-12 flex-1"
-            />
-            <button
-              type="button"
-              className="h-12 rounded-2xl border border-[#55e7ff]/24 px-5 text-sm font-semibold text-[#a9f7ff] transition hover:bg-[#55e7ff]/10"
-            >
-              Apply
-            </button>
-            </div>
-          </div>
-
-          <div>
-            <div className="text-sm font-semibold text-white/78">Payment method</div>
-            <p className="mt-1 text-xs text-[#c9d5ef]/48">Choose how you want to activate this plan.</p>
-            <div className="mt-4 grid gap-2 sm:grid-cols-3 lg:grid-cols-1">
-            <button
-              type="button"
-              onClick={() => setPaymentMode("trial")}
-              className={cn(
-                "flex min-h-14 items-center justify-between rounded-2xl border px-4 py-3 text-left transition",
-                paymentMode === "trial"
-                  ? "border-[#55e7ff]/45 bg-[#0f3440]"
-                  : "border-[#9fb8d7]/14 bg-black/16 hover:border-[#9fb8d7]/28",
-              )}
-            >
-              <span className="text-sm font-semibold">Free trial</span>
-              <span className="text-xs text-[#c9d5ef]/48">14 days</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setPaymentProvider("pine-labs");
-                setPaymentMode("gateway");
-              }}
-              className={cn(
-                "flex min-h-14 items-center justify-between rounded-2xl border px-4 py-3 text-left transition",
-                paymentMode === "gateway" && paymentProvider === "pine-labs"
-                  ? "border-[#55e7ff]/55 bg-[#0f3440] shadow-[0_0_0_1px_rgba(85,231,255,0.18)]"
-                  : "border-[#9fb8d7]/14 bg-black/16 hover:border-[#9fb8d7]/28",
-              )}
-            >
-              <span className="rounded-lg bg-white px-3 py-1.5">
-                <img src="/assets/logos/pinelab.svg" alt="Pine Labs" className="h-5 w-auto" />
-              </span>
-              <span className="text-xs font-semibold text-[#9afcf1]">Pay now</span>
-            </button>
-
-            <button
-              type="button"
-              disabled
-              className="flex min-h-14 items-center justify-between rounded-2xl border border-[#9fb8d7]/10 bg-black/10 px-4 py-3 text-left opacity-55"
-            >
-              <span className="rounded-lg bg-white px-3 py-1.5">
-                <img src="/assets/logos/razorpay.png" alt="Razorpay" className="h-5 w-auto" />
-              </span>
-              <span className="text-xs text-white/45">Soon</span>
-            </button>
-            </div>
-          </div>
-        </div>
+      <div className="mt-5 rounded-3xl border border-foreground/14 bg-card p-5">
+        <div className="text-sm font-semibold text-foreground/78">You're set up on the Free plan</div>
+        <p className="mt-1 text-xs text-foreground/48">
+          No payment needed — Nova is free while it's the only agent live. Paid
+          tiers unlock automatically once more agents ship.
+        </p>
       </div>
     </div>
   );
 }
 
 function BuildStep({ buildIndex }: { buildIndex: number }) {
+  const { resolvedTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  const icon = mounted && resolvedTheme === "light" ? iconLight : iconDark;
+
   return (
     <div className="mx-auto flex max-w-3xl flex-col items-center py-14 text-center">
-      <div className="relative mb-8 flex h-24 w-24 items-center justify-center rounded-full bg-[#121821]">
-        <div className="absolute inset-0 animate-spin rounded-full border-4 border-transparent border-t-[#6ee7d8] border-r-[#ffcf7a]" />
-        <img src={logo} alt="Jaabili" className="h-14 w-auto" />
+      <div className="relative mb-8 flex h-24 w-24 items-center justify-center rounded-full bg-card">
+        <div className="absolute inset-0 animate-spin rounded-full border-4 border-transparent border-t-primary border-r-secondary" />
+        <img src={icon} alt="Jaabili" className="h-14 w-auto" />
       </div>
       <h1 className="text-4xl font-semibold tracking-tight">Building Workspace...</h1>
-      <p className="mt-3 text-sm text-white/48">Creating your AI workspace and dashboard.</p>
+      <p className="mt-3 text-sm text-foreground/48">Creating your AI workspace and dashboard.</p>
       <div className="mt-10 w-full max-w-lg space-y-3 text-left">
         {buildSteps.map((item, index) => (
           <div
@@ -1347,12 +1525,12 @@ function BuildStep({ buildIndex }: { buildIndex: number }) {
             className={cn(
               "flex items-center gap-3 rounded-2xl border px-4 py-3 text-sm",
               index <= buildIndex
-                ? "border-[#6ee7d8]/20 bg-[#6ee7d8]/10 text-white"
-                : "border-white/8 bg-white/[0.025] text-white/35",
+                ? "border-primary/20 bg-primary/10 text-foreground"
+                : "border-border bg-foreground/[0.025] text-foreground/35",
             )}
           >
-            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-white/8">
-              {index <= buildIndex ? <Check className="h-3.5 w-3.5 text-[#6ee7d8]" /> : index + 1}
+            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-foreground/8">
+              {index <= buildIndex ? <Check className="h-3.5 w-3.5 text-primary" /> : index + 1}
             </span>
             {item}
           </div>
@@ -1376,10 +1554,10 @@ function TopStepper({ step }: { step: number }) {
                   className={cn(
                     "flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold transition sm:h-9 sm:w-9",
                     complete
-                      ? "border border-[#55dff5]/50 bg-[#55dff5]/14 text-[#55dff5]"
+                      ? "border border-primary/50 bg-primary/14 text-primary"
                       : active
-                        ? "border border-[#d4b8ff]/55 bg-[#d4b8ff]/14 text-[#e3d2ff]"
-                        : "border border-[#9fb8d7]/14 bg-[#102033] text-[#c9d5ef]/42",
+                        ? "border border-accent/55 bg-accent/14 text-accent"
+                        : "border border-foreground/14 bg-card text-foreground/42",
                   )}
                 >
                   {complete ? <Check className="h-4 w-4" /> : index + 1}
@@ -1389,10 +1567,10 @@ function TopStepper({ step }: { step: number }) {
                     className={cn(
                       "ml-2 hidden h-px flex-1 rounded-full md:block",
                       index < step
-                        ? "bg-[#55dff5]/55"
+                        ? "bg-primary/55"
                         : active
-                          ? "bg-[#d4b8ff]/45"
-                          : "bg-[#9fb8d7]/12",
+                          ? "bg-accent/45"
+                          : "bg-foreground/12",
                     )}
                   />
                 )}
@@ -1400,7 +1578,7 @@ function TopStepper({ step }: { step: number }) {
               <span
                 className={cn(
                   "w-full truncate text-center text-[10px] font-medium sm:text-[11px]",
-                  active ? "text-[#d4b8ff]" : complete ? "text-[#55dff5]/86" : "text-[#c9d5ef]/42",
+                  active ? "text-accent" : complete ? "text-primary/86" : "text-foreground/42",
                 )}
               >
                 <span className="hidden sm:inline">{item.label}</span>
@@ -1421,6 +1599,7 @@ function FinalReviewStep({
   form,
   goals,
   plan,
+  fileCount,
   draftConsent,
   termsConsent,
   setDraftConsent,
@@ -1432,6 +1611,7 @@ function FinalReviewStep({
   form: SetupForm;
   goals: string[];
   plan: (typeof plans)[number];
+  fileCount: number;
   draftConsent: boolean;
   termsConsent: boolean;
   setDraftConsent: (value: boolean) => void;
@@ -1474,29 +1654,29 @@ function FinalReviewStep({
         <ReviewRow
           icon={FileText}
           title={workspaceType === "business" ? "Services & FAQs" : "Knowledge"}
-          meta={`${selectedGoalLabels.length || agentIds.length} goals - ${form.uploadedFiles.length} files loaded`}
+          meta={`${selectedGoalLabels.length || agentIds.length} goals - ${fileCount} file${fileCount === 1 ? "" : "s"} attached`}
         />
       </div>
 
-      <div className="mt-7 rounded-[26px] border border-[#b8c6e6]/55 bg-gradient-to-r from-[#246c7a] via-[#21415e] to-[#6f668f] p-6 shadow-[0_24px_70px_rgba(0,0,0,0.28)]">
+      <div className="mt-7 rounded-[26px] border border-foreground/55 bg-gradient-to-r from-[#246c7a] via-[#21415e] to-[#6f668f] p-6 shadow-[0_24px_70px_rgba(0,0,0,0.28)]">
         <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
           <div>
-            <div className="text-2xl font-semibold text-[#67e8f9]">{plan.name} Plan</div>
-            <div className="mt-2 text-4xl font-bold tracking-tight text-[#bdefff] sm:text-5xl">
+            <div className="text-2xl font-semibold text-primary">{plan.name} Plan</div>
+            <div className="mt-2 text-4xl font-bold tracking-tight text-primary sm:text-5xl">
               {plan.price.replace("/month", "")}
-              <span className="text-base font-medium text-white/70"> /month</span>
+              <span className="text-base font-medium text-foreground/70"> /month</span>
             </div>
           </div>
-          <div className="grid gap-3 text-sm text-white/78 sm:grid-cols-2">
+          <div className="grid gap-3 text-sm text-foreground/78 sm:grid-cols-2">
             {plan.features.map((feature) => (
               <div key={feature} className="flex items-center gap-3">
-                <CheckCircle2 className="h-4 w-4 text-[#55e7ff]" />
+                <CheckCircle2 className="h-4 w-4 text-primary" />
                 {feature}
               </div>
             ))}
           </div>
         </div>
-        <span className="mt-5 inline-flex rounded-full bg-[#55dff5] px-3 py-1 text-xs font-bold uppercase tracking-wide text-[#063042]">
+        <span className="mt-5 inline-flex rounded-full bg-primary px-3 py-1 text-xs font-bold uppercase tracking-wide text-primary-foreground">
           14-day free trial
         </span>
       </div>
@@ -1513,11 +1693,11 @@ function FinalReviewStep({
           label={
             <>
               I agree to the{" "}
-              <Link href="/terms" className="text-[#55e7ff] underline underline-offset-4">
+              <Link href="/terms" className="text-primary underline underline-offset-4">
                 Terms
               </Link>
               ,{" "}
-              <Link href="/privacy" className="text-[#55e7ff] underline underline-offset-4">
+              <Link href="/privacy" className="text-primary underline underline-offset-4">
                 Privacy Policy
               </Link>
               , and data processing for agent setup.
@@ -1526,7 +1706,7 @@ function FinalReviewStep({
         />
       </div>
 
-      <div className="mt-8 rounded-2xl border border-[#55e7ff]/16 bg-[#55e7ff]/8 px-4 py-3 text-center text-sm text-[#c9d5ef]/72">
+      <div className="mt-8 rounded-2xl border border-primary/16 bg-primary/8 px-4 py-3 text-center text-sm text-foreground/72">
         No credit card required for trial. You can upgrade, cancel, or publish agents from the dashboard.
       </div>
     </div>
@@ -1543,17 +1723,17 @@ function ReviewRow({
   meta: string;
 }) {
   return (
-    <div className="flex items-center gap-4 rounded-3xl border border-[#b8c6e6]/45 bg-[#111d2f] p-5">
-      <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#162b45] text-[#d8c3ff]">
+    <div className="flex items-center gap-4 rounded-3xl border border-foreground/45 bg-card p-5">
+      <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-card text-accent">
         <Icon className="h-5 w-5" />
       </span>
       <div className="min-w-0 flex-1">
-        <div className="text-lg font-semibold text-[#dbe8ff]">{title}</div>
-        <p className="mt-1 truncate text-sm font-medium text-[#c9d5ef]/68">{meta}</p>
+        <div className="text-lg font-semibold text-foreground">{title}</div>
+        <p className="mt-1 truncate text-sm font-medium text-foreground/68">{meta}</p>
       </div>
       <button
         type="button"
-        className="hidden items-center gap-3 rounded-full px-3 py-2 text-sm font-semibold text-[#d8c3ff] transition hover:bg-white/7 sm:inline-flex"
+        className="hidden items-center gap-3 rounded-full px-3 py-2 text-sm font-semibold text-accent transition hover:bg-foreground/7 sm:inline-flex"
       >
         Edit
         <ChevronDown className="h-4 w-4" />
@@ -1575,14 +1755,14 @@ function ConsentCheck({
     <button
       type="button"
       onClick={() => onChange(!checked)}
-      className="flex w-full items-start gap-3 text-left text-sm text-[#dbe8ff]/82"
+      className="flex w-full items-start gap-3 text-left text-sm text-foreground/82"
     >
       <span
         className={cn(
           "mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition",
           checked
-            ? "border-[#55dff5] bg-[#55dff5] text-[#061321]"
-            : "border-[#9fb8d7]/35 bg-[#111d2f]",
+            ? "border-primary bg-primary text-background"
+            : "border-foreground/35 bg-card",
         )}
       >
         {checked && <Check className="h-3.5 w-3.5" />}
@@ -1594,14 +1774,14 @@ function ConsentCheck({
 
 function AgentRecommendation({ agentIds }: { agentIds: string[] }) {
   return (
-    <div className="mt-6 rounded-3xl border border-[#6ee7d8]/18 bg-[#6ee7d8]/8 p-5">
-      <div className="text-sm font-semibold text-[#a7fff2]">Recommended AI workspace</div>
+    <div className="mt-6 rounded-3xl border border-primary/18 bg-primary/8 p-5">
+      <div className="text-sm font-semibold text-primary">Recommended AI workspace</div>
       <div className="mt-3 flex flex-wrap gap-2">
         {agentIds.map((id) => {
           const agent = agentCatalog[id as keyof typeof agentCatalog];
           if (!agent) return null;
           return (
-            <span key={id} className="rounded-full border border-white/10 bg-black/20 px-3 py-1 text-xs text-white/72">
+            <span key={id} className="rounded-full border border-border bg-foreground/[0.04] px-3 py-1 text-xs text-foreground/72">
               {agent.name}
             </span>
           );
@@ -1613,8 +1793,8 @@ function AgentRecommendation({ agentIds }: { agentIds: string[] }) {
 
 function AgentCompactList({ agentIds }: { agentIds: string[] }) {
   return (
-    <div className="rounded-2xl border border-[#9fb8d7]/12 bg-black/12 p-4">
-      <div className="mb-3 text-sm font-semibold text-white/72">Agents prepared</div>
+    <div className="rounded-2xl border border-foreground/12 bg-foreground/[0.04] p-4">
+      <div className="mb-3 text-sm font-semibold text-foreground/72">Agents prepared</div>
       <div className="flex flex-wrap gap-2">
         {agentIds.map((id) => {
           const agent = agentCatalog[id as keyof typeof agentCatalog];
@@ -1622,7 +1802,7 @@ function AgentCompactList({ agentIds }: { agentIds: string[] }) {
           return (
             <span
               key={id}
-              className="rounded-full border border-[#55e7ff]/18 bg-[#55e7ff]/8 px-3 py-1.5 text-xs font-semibold text-[#a9f7ff]"
+              className="rounded-full border border-primary/18 bg-primary/8 px-3 py-1.5 text-xs font-semibold text-primary"
             >
               {agent.name}
             </span>
@@ -1635,23 +1815,23 @@ function AgentCompactList({ agentIds }: { agentIds: string[] }) {
 
 function AgentPreview({ agentIds }: { agentIds: string[] }) {
   return (
-    <div className="mt-6 rounded-3xl border border-white/10 bg-black/18 p-5">
-      <div className="mb-4 text-sm font-semibold text-white/72">AI Creates Agents</div>
+    <div className="mt-6 rounded-3xl border border-border bg-foreground/[0.04] p-5">
+      <div className="mb-4 text-sm font-semibold text-foreground/72">AI Creates Agents</div>
       <div className="grid gap-3 md:grid-cols-2">
         {agentIds.map((id) => {
           const agent = agentCatalog[id as keyof typeof agentCatalog];
           if (!agent) return null;
           const Icon = agent.icon;
           return (
-            <div key={id} className="rounded-2xl bg-white/[0.035] p-4">
+            <div key={id} className="rounded-2xl bg-foreground/[0.035] p-4">
               <div className="flex items-start gap-3">
-                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#6ee7d8]/10 text-[#6ee7d8]">
+                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
                   <Icon className="h-5 w-5" />
                 </span>
                 <div>
                   <div className="font-semibold">{agent.name}</div>
-                  <p className="mt-1 text-sm leading-5 text-white/48">{agent.purpose}</p>
-                  <span className="mt-3 inline-flex rounded-full bg-[#6ee7d8]/12 px-3 py-1 text-xs font-semibold text-[#a7fff2]">
+                  <p className="mt-1 text-sm leading-5 text-foreground/48">{agent.purpose}</p>
+                  <span className="mt-3 inline-flex rounded-full bg-primary/12 px-3 py-1 text-xs font-semibold text-primary">
                     Ready
                   </span>
                 </div>
@@ -1675,11 +1855,11 @@ function StepHeader({
 }) {
   return (
     <div>
-      <p className="text-sm font-medium text-[#6ee7d8]">{eyebrow}</p>
+      <p className="text-sm font-medium text-primary">{eyebrow}</p>
       <h1 className="mt-3 max-w-3xl text-3xl font-semibold tracking-tight sm:text-5xl">
         {title}
       </h1>
-      <p className="mt-4 max-w-2xl text-sm leading-6 text-white/52">{subtitle}</p>
+      <p className="mt-4 max-w-2xl text-sm leading-6 text-foreground/52">{subtitle}</p>
     </div>
   );
 }
@@ -1697,9 +1877,9 @@ function Field({
 }) {
   return (
     <label className={cn("block", className)}>
-      <span className="mb-2 block text-sm font-semibold text-white/72">{label}</span>
+      <span className="mb-2 block text-sm font-semibold text-foreground/72">{label}</span>
       {children}
-      {hint && <span className="mt-2 block text-xs leading-5 text-white/38">{hint}</span>}
+      {hint && <span className="mt-2 block text-xs leading-5 text-foreground/38">{hint}</span>}
     </label>
   );
 }

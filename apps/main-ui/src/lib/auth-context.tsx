@@ -5,157 +5,119 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import {
-  onAuthStateChanged,
-  createUserWithEmailAndPassword,
-  sendPasswordResetEmail as fbSendPasswordResetEmail,
-  signInWithEmailAndPassword,
-  signInWithPopup,
-  signOut as fbSignOut,
-  updateProfile,
-  type User,
-} from "firebase/auth";
-import { firebaseAuth, googleProvider, isFirebaseConfigured } from "./firebase";
-import { clearOnboarding } from "./onboarding";
 
-export type SocialProviderId = "google";
+const STORAGE_KEY = "jaabili_user";
 
-const DEMO_EMAIL = "saathvikk202@gmail.com";
-const DEMO_PASSWORD = "demo1234";
-const DEMO_KEY = "jaabili_demo_user";
+const apiBase = (
+  import.meta.env.VITE_API_BASE_URL ??
+  (import.meta.env.DEV ? "http://localhost:3001" : "")
+).replace(/\/$/, "");
 
-export interface DemoUser {
+export interface AuthUser {
   uid: string;
-  email: string;
-  displayName: string;
-  isDemo: true;
+  email: string | null;
+  displayName: string | null;
+  photoURL: string | null;
 }
-
-export type AuthUser = User | DemoUser;
 
 interface AuthContextValue {
   user: AuthUser | null;
   loading: boolean;
-  signInWithSocial: (id: SocialProviderId) => Promise<User>;
-  signInWithEmail: (email: string, password: string) => Promise<User>;
-  signUpWithEmail: (name: string, email: string, password: string) => Promise<User>;
-  sendPasswordResetEmail: (email: string) => Promise<void>;
+  signInWithGoogleAccessToken: (accessToken: string) => Promise<AuthUser>;
+  signInWithEmail: (email: string, password: string) => Promise<AuthUser>;
+  signUpWithEmail: (name: string, email: string, password: string) => Promise<AuthUser>;
   signOut: () => Promise<void>;
+}
+
+interface AuthResponse {
+  valid: boolean;
+  uid: string;
+  email: string | null;
+  name: string | null;
+  picture: string | null;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-function readDemo(): DemoUser | null {
+function readUser(): AuthUser | null {
   if (typeof window === "undefined") return null;
   try {
-    const raw = window.localStorage.getItem(DEMO_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as DemoUser;
-    return parsed?.isDemo ? parsed : null;
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    return raw ? (JSON.parse(raw) as AuthUser) : null;
   } catch {
     return null;
   }
 }
 
-function clearDemo() {
-  if (typeof window !== "undefined") {
-    window.localStorage.removeItem(DEMO_KEY);
+function writeUser(user: AuthUser | null) {
+  if (typeof window === "undefined") return;
+  if (user) {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
+  } else {
+    window.localStorage.removeItem(STORAGE_KEY);
   }
 }
 
-function writeDemo(user: DemoUser) {
-  if (typeof window !== "undefined") {
-    window.localStorage.setItem(DEMO_KEY, JSON.stringify(user));
+function toAuthUser(data: AuthResponse): AuthUser {
+  return {
+    uid: data.uid,
+    email: data.email,
+    displayName: data.name,
+    photoURL: data.picture,
+  };
+}
+
+async function postAuth(path: string, body: Record<string, unknown>): Promise<AuthUser> {
+  const res = await fetch(`${apiBase}/api/auth/${path}`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const data = (await res.json().catch(() => null)) as
+    | (AuthResponse & { error?: string })
+    | null;
+
+  if (!res.ok || !data?.valid) {
+    throw new Error(data?.error ?? "Sign-in failed.");
   }
+  return toAuthUser(data);
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<AuthUser | null>(() => readDemo());
-  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<AuthUser | null>(() => readUser());
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!firebaseAuth) {
-      setUser(readDemo());
-      setLoading(false);
-      return;
-    }
-
-    const unsub = onAuthStateChanged(firebaseAuth, (fbUser) => {
-      setUser(readDemo() ?? fbUser);
-      setLoading(false);
-    });
-
-    return () => unsub();
+    setUser(readUser());
   }, []);
 
-  const signInWithSocial = async (id: SocialProviderId): Promise<User> => {
-    if (id !== "google") {
-      throw new Error("Only Google sign-in is enabled for now.");
-    }
-    if (!firebaseAuth || !isFirebaseConfigured) {
-      throw new Error("Firebase Google sign-in is not configured for this environment.");
-    }
-
-    clearDemo();
-    const result = await signInWithPopup(firebaseAuth, googleProvider);
-    setUser(result.user);
-    return result.user;
+  const signInWithGoogleAccessToken = async (accessToken: string): Promise<AuthUser> => {
+    const authUser = await postAuth("verify", { accessToken });
+    writeUser(authUser);
+    setUser(authUser);
+    return authUser;
   };
 
-  const signInWithEmail = async (email: string, password: string): Promise<User> => {
-    if (email.trim().toLowerCase() === DEMO_EMAIL && password === DEMO_PASSWORD) {
-      clearOnboarding();
-      const demoUser: DemoUser = {
-        uid: "demo-user",
-        email: DEMO_EMAIL,
-        displayName: "Demo User",
-        isDemo: true,
-      };
-      writeDemo(demoUser);
-      setUser(demoUser);
-      return demoUser as unknown as User;
-    }
-
-    if (!firebaseAuth || !isFirebaseConfigured) {
-      throw new Error("Firebase email sign-in is not configured for this environment.");
-    }
-
-    clearDemo();
-    const result = await signInWithEmailAndPassword(firebaseAuth, email, password);
-    setUser(result.user);
-    return result.user;
+  const signInWithEmail = async (email: string, password: string): Promise<AuthUser> => {
+    const authUser = await postAuth("login", { email, password });
+    writeUser(authUser);
+    setUser(authUser);
+    return authUser;
   };
 
   const signUpWithEmail = async (
     name: string,
     email: string,
     password: string,
-  ): Promise<User> => {
-    if (!firebaseAuth || !isFirebaseConfigured) {
-      throw new Error("Firebase sign-up is not configured for this environment.");
-    }
-
-    clearDemo();
-    const result = await createUserWithEmailAndPassword(firebaseAuth, email, password);
-    if (name.trim()) {
-      await updateProfile(result.user, { displayName: name.trim() });
-    }
-    setUser(result.user);
-    return result.user;
-  };
-
-  const sendPasswordResetEmail = async (email: string) => {
-    if (!firebaseAuth || !isFirebaseConfigured) {
-      throw new Error("Firebase password reset is not configured for this environment.");
-    }
-    await fbSendPasswordResetEmail(firebaseAuth, email);
+  ): Promise<AuthUser> => {
+    const authUser = await postAuth("register", { name, email, password });
+    writeUser(authUser);
+    setUser(authUser);
+    return authUser;
   };
 
   const signOut = async () => {
-    clearDemo();
-    if (firebaseAuth && isFirebaseConfigured) {
-      await fbSignOut(firebaseAuth);
-    }
+    writeUser(null);
     setUser(null);
   };
 
@@ -164,10 +126,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       value={{
         user,
         loading,
-        signInWithSocial,
+        signInWithGoogleAccessToken,
         signInWithEmail,
         signUpWithEmail,
-        sendPasswordResetEmail,
         signOut,
       }}
     >
@@ -175,11 +136,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     </AuthContext.Provider>
   );
 }
-
-export const DEMO_CREDENTIALS = {
-  email: DEMO_EMAIL,
-  password: DEMO_PASSWORD,
-};
 
 export function useAuth(): AuthContextValue {
   const ctx = useContext(AuthContext);
