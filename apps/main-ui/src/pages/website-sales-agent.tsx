@@ -35,6 +35,7 @@ import { useTheme } from "next-themes";
 import iconDark from "@assets/jaabili-icon-dark.png";
 import iconLight from "@assets/jaabili-icon-light.png";
 import { cn } from "@/lib/utils";
+import { BrandPreloader } from "@/components/ui/brand-loader";
 import {
   agentOptions,
   labelOptions,
@@ -707,7 +708,7 @@ export default function WebsiteSalesAgentPage() {
 
   return (
     <div className="h-screen overflow-hidden bg-background text-foreground">
-      <AgentPreloader show={isBooting} />
+      <BrandPreloader show={isBooting} />
       <div className="flex h-full">
           <ChatSidebar
           conversations={filteredHistory}
@@ -868,26 +869,6 @@ type KnowledgeDialogState =
   | { type: "faq"; title: string; category: string }
   | { type: "pricing"; title: string; category: string }
   | { type: "policy"; title: string; category: string };
-
-function AgentPreloader({ show }: { show: boolean }) {
-  const icon = useThemeIcon();
-  if (!show) return null;
-
-  return (
-    <div className="fixed inset-0 z-[250] flex items-center justify-center bg-background">
-      <div className="absolute size-72 rounded-full bg-[radial-gradient(circle,rgba(245,182,66,0.18),transparent_62%)] blur-2xl" />
-      <div className="relative flex flex-col items-center">
-        <div className="jaabili-mandala flex size-36 items-center justify-center rounded-full bg-card">
-          <img src={icon} alt="Jaabili" className="h-20 w-auto object-contain" />
-        </div>
-        <div className="mt-6 text-sm text-foreground/70">Opening Jaabili Agent Lab</div>
-        <div className="mt-4 h-1 w-48 overflow-hidden rounded-full bg-foreground/10">
-          <div className="jaabili-loader-line h-full rounded-full bg-gradient-to-r from-secondary via-white to-primary" />
-        </div>
-      </div>
-    </div>
-  );
-}
 
 function ChatSidebar({
   conversations,
