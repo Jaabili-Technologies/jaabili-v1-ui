@@ -42,7 +42,7 @@ type AgentRailStatus = { percent: number; isLive: boolean };
 
 export default function Dashboard() {
   const { user, signOut } = useAuth();
-  const onboarding = useMemo(() => readOnboarding(), []);
+  const onboarding = useMemo(() => readOnboarding(user?.uid), [user?.uid]);
   const selectedPlan = (onboarding?.plan ?? "free") as keyof typeof PLAN_LIMITS;
   const selectedAgentIds =
     onboarding?.selectedAgents && onboarding.selectedAgents.length > 0

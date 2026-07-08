@@ -23,7 +23,7 @@ export function ProtectedRoute({
       setLocation("/get-started");
       return;
     }
-    if (requireOnboarding && !hasCompletedOnboarding()) {
+    if (requireOnboarding && !hasCompletedOnboarding(user.uid)) {
       setLocation("/onboarding");
     }
   }, [user, loading, setLocation, requireOnboarding]);
@@ -36,7 +36,7 @@ export function ProtectedRoute({
     );
   }
 
-  if (requireOnboarding && !hasCompletedOnboarding()) {
+  if (requireOnboarding && !hasCompletedOnboarding(user.uid)) {
     return (
       <div className="min-h-[100dvh] flex items-center justify-center bg-background text-white/60">
         <Loader2 className="w-6 h-6 animate-spin" />

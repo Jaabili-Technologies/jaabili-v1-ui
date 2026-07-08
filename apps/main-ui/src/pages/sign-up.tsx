@@ -1,9 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "wouter";
-import { AlertCircle, ArrowLeft, CheckCircle2 } from "lucide-react";
-import { useTheme } from "next-themes";
-import logoDark from "@assets/jaabili-logo-dark.png";
-import logoLight from "@assets/jaabili-logo-light.png";
+import { AlertCircle } from "lucide-react";
+import { AuthVisualPanel } from "@/components/auth/auth-visual-panel";
 import { SocialButtons } from "@/components/auth/social-buttons";
 import { useAuth } from "@/lib/auth-context";
 import { sendWelcomeEmail } from "@/lib/mail-api";
@@ -11,16 +9,11 @@ import { sendWelcomeEmail } from "@/lib/mail-api";
 export default function SignUp() {
   const [, setLocation] = useLocation();
   const { user, loading, signUpWithEmail } = useAuth();
-  const { resolvedTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const logo = mounted && resolvedTheme === "light" ? logoLight : logoDark;
-
-  useEffect(() => setMounted(true), []);
 
   useEffect(() => {
     if (!loading && user) setLocation("/onboarding");
@@ -50,40 +43,22 @@ export default function SignUp() {
 
   return (
     <main className="grid min-h-[100dvh] bg-background text-foreground lg:grid-cols-[1.02fr_0.98fr]">
-      <section className="relative hidden overflow-hidden border-r border-border bg-card p-10 lg:flex lg:flex-col lg:justify-between">
-        <div className="absolute inset-0 opacity-40 dark:opacity-100 bg-[radial-gradient(circle_at_18%_24%,rgba(82,55,150,0.28),transparent_34%),radial-gradient(circle_at_74%_78%,rgba(20,184,166,0.16),transparent_32%)]" />
-        <div className="relative">
-          <Link href="/" className="mb-12 inline-flex items-center gap-2 text-sm text-foreground/55 transition hover:text-foreground">
-            <ArrowLeft className="h-4 w-4" />
-            Back to home
-          </Link>
-          <img src={logo} alt="Jaabili" className="mb-12 h-44 w-auto" />
-          <h1 className="max-w-xl text-5xl font-semibold leading-tight tracking-tight">
-            Create your intelligent workspace.
-          </h1>
-          <p className="mt-7 max-w-lg text-lg leading-8 text-foreground/55">
-            Set up Nova, your website sales agent, and start capturing
-            qualified leads today.
-          </p>
-        </div>
-        <div className="relative space-y-4">
-          {[
-            "Free 14-day trial — no card required",
-            "Your data stays isolated to your workspace",
-            "Cancel anytime, your data stays yours",
-          ].map((item) => (
-            <div key={item} className="flex items-center gap-3 text-sm text-foreground/72">
-              <CheckCircle2 className="h-4 w-4 text-primary" />
-              {item}
-            </div>
-          ))}
-        </div>
-      </section>
+      <AuthVisualPanel
+        accent="violet"
+        eyebrow="Create workspace"
+        title="Create your intelligent workspace."
+        subtitle="Set up Nova, your website sales agent, and start capturing qualified leads today."
+        items={[
+          "Free 14-day trial — no card required",
+          "Your data stays isolated to your workspace",
+          "Cancel anytime, your data stays yours",
+        ]}
+      />
 
       <section className="flex items-center justify-center px-5 py-10">
         <div className="w-full max-w-sm">
-          <Link href="/" className="mb-10 flex items-center gap-3 lg:hidden">
-            <img src={logo} alt="Jaabili" className="h-11 w-auto" />
+          <Link href="/" className="mb-10 flex items-center gap-2.5 lg:hidden">
+            <img src="/peacock-mark.png" alt="" className="h-8 w-8" />
             <span className="font-semibold">Jaabili</span>
           </Link>
 

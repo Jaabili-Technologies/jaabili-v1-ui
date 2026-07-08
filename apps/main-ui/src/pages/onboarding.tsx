@@ -561,7 +561,7 @@ export default function Onboarding() {
           ? form.teamName.trim()
           : `${firstName}'s Workspace`;
 
-    saveOnboarding({
+    saveOnboarding(user?.uid ?? "anonymous", {
       role: activeType,
       useCase: goals.join(","),
       teamSize: activeType === "team" ? form.teamSize : selectedPlan,
@@ -825,11 +825,6 @@ function WelcomeStep({
   experience: ExperienceLevel;
   setExperience: (level: ExperienceLevel) => void;
 }) {
-  const { resolvedTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
-  const logo = mounted && resolvedTheme === "light" ? logoLight : logoDark;
-
   return (
     <div className="mx-auto flex max-w-3xl flex-col items-center py-4 text-center sm:py-8">
       <motion.div
@@ -838,11 +833,25 @@ function WelcomeStep({
         transition={{ duration: 0.34, ease: "easeOut" }}
         className="flex flex-col items-center"
       >
-        <img
-          src={logo}
-          alt="Jaabili Tech Solutions"
-          className="h-20 w-auto drop-shadow-[0_0_28px_rgba(85,231,255,0.24)] sm:h-24"
-        />
+        <motion.div
+          className="relative flex h-24 w-24 items-center justify-center rounded-full"
+          initial={{ scale: 0.6, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ duration: 0.5, ease: "easeOut" }}
+        >
+          <motion.span
+            className="absolute inset-0 rounded-full bg-primary/20 blur-xl"
+            animate={{ scale: [1, 1.25, 1], opacity: [0.5, 0.8, 0.5] }}
+            transition={{ duration: 2.8, repeat: Infinity, ease: "easeInOut" }}
+          />
+          <motion.img
+            src="/peacock-mark.png"
+            alt=""
+            className="relative h-16 w-16"
+            animate={{ y: [0, -6, 0] }}
+            transition={{ duration: 3.4, repeat: Infinity, ease: "easeInOut" }}
+          />
+        </motion.div>
         <h1 className="mt-7 text-3xl font-semibold tracking-tight text-foreground sm:text-5xl">
           Welcome, {firstName}
         </h1>

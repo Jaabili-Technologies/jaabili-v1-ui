@@ -33,12 +33,19 @@ export interface OnboardingPrefs {
   completedAt: string;
 }
 
-const KEY = "jaabili_onboarding";
+const LEGACY_KEY = "jaabili_onboarding";
 
-export function readOnboarding(): OnboardingPrefs | null {
-  if (typeof window === "undefined") return null;
+// Onboarding completion is tracked per signed-in user (keyed by uid), not as a single
+// global browser flag — otherwise signing in as a different account (or re-testing) on
+// the same browser would skip onboarding since a previous account already completed it.
+function keyFor(uid: string): string {
+  return `${LEGACY_KEY}:${uid}`;
+}
+
+export function readOnboarding(uid: string | null | undefined): OnboardingPrefs | null {
+  if (typeof window === "undefined" || !uid) return null;
   try {
-    const raw = window.localStorage.getItem(KEY);
+    const raw = window.localStorage.getItem(keyFor(uid));
     if (!raw) return null;
     const parsed = JSON.parse(raw) as OnboardingPrefs;
     if (parsed?.completed) return parsed;
@@ -48,21 +55,21 @@ export function readOnboarding(): OnboardingPrefs | null {
   }
 }
 
-export function saveOnboarding(prefs: Omit<OnboardingPrefs, "completed" | "completedAt">) {
+export function saveOnboarding(uid: string, prefs: Omit<OnboardingPrefs, "completed" | "completedAt">) {
   if (typeof window === "undefined") return;
   const full: OnboardingPrefs = {
     ...prefs,
     completed: true,
     completedAt: new Date().toISOString(),
   };
-  window.localStorage.setItem(KEY, JSON.stringify(full));
+  window.localStorage.setItem(keyFor(uid), JSON.stringify(full));
 }
 
-export function clearOnboarding() {
+export function clearOnboarding(uid: string) {
   if (typeof window === "undefined") return;
-  window.localStorage.removeItem(KEY);
+  window.localStorage.removeItem(keyFor(uid));
 }
 
-export function hasCompletedOnboarding(): boolean {
-  return readOnboarding() !== null;
+export function hasCompletedOnboarding(uid: string | null | undefined): boolean {
+  return readOnboarding(uid) !== null;
 }
