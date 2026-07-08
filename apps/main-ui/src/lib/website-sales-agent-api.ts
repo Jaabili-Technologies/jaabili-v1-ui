@@ -329,6 +329,44 @@ export interface WebsiteSalesDataRequest {
   canSkip: boolean;
   skipImpact: string;
   status: WebsiteSalesDataRequestStatus;
+  gatingPrompt?: string;
+}
+
+export type WebsiteSalesDataAnswerMode = "text" | "yes" | "no" | "skip";
+
+export interface WebsiteSalesDataRequestAnswer {
+  dataRequestId: string;
+  mode: WebsiteSalesDataAnswerMode;
+  answerText: string | null;
+  knowledgeSourceId: string | null;
+  answeredAt: string;
+}
+
+export interface WebsiteSalesWizardTurn {
+  id: string;
+  role: "agent" | "owner";
+  dataRequestId: string | null;
+  content: string;
+  inputMode: "text" | "yes_no" | null;
+  createdAt: string;
+}
+
+export interface WebsiteSalesWizardQuestion {
+  dataRequestId: string;
+  prompt: string;
+  inputMode: "text" | "yes_no";
+  examples: string[];
+  sensitivity: WebsiteSalesDataSensitivity;
+  skippable: boolean;
+}
+
+export interface WebsiteSalesDiagnosisWizard {
+  status: "not_started" | "in_progress" | "completed";
+  industry: string;
+  currentQuestion: WebsiteSalesWizardQuestion | null;
+  answeredCount: number;
+  totalCount: number;
+  turnHistory: WebsiteSalesWizardTurn[];
 }
 
 export interface WebsiteSalesDiagnosisIssue {
@@ -364,6 +402,7 @@ export interface WebsiteSalesDiagnosisReport {
     name: string;
     website: string | null;
     industry: string | null;
+    classifiedIndustry: string;
     sourceCount: number;
     leadCount: number;
   };
@@ -372,6 +411,7 @@ export interface WebsiteSalesDiagnosisReport {
   solutionOptions: WebsiteSalesSolutionOption[];
   recommendedSolutionIds: string[];
   nextBestStep: string;
+  wizard: WebsiteSalesDiagnosisWizard;
 }
 
 export type WebsiteSalesLearningPriority = "urgent" | "high" | "medium" | "low";
@@ -512,6 +552,35 @@ export function getWebsiteSalesDiagnosisReport(input: {
   const query = params.toString() ? `?${params.toString()}` : "";
   return request<WebsiteSalesDiagnosisReport>(
     `/agents/website-sales/diagnosis${query}`,
+  );
+}
+
+export function answerWebsiteSalesDataRequest(input: {
+  tenantId?: string;
+  dataRequestId: string;
+  mode: WebsiteSalesDataAnswerMode;
+  answerText?: string;
+}) {
+  return request<{ report: WebsiteSalesDiagnosisReport }>(
+    "/agents/website-sales/diagnosis/answer",
+    { method: "POST", body: JSON.stringify(input) },
+  );
+}
+
+export function updateWebsiteSalesDiagnosisSolutions(input: {
+  tenantId?: string;
+  selectedSolutionIds: string[];
+}) {
+  return request<{ report: WebsiteSalesDiagnosisReport }>(
+    "/agents/website-sales/diagnosis/solutions",
+    { method: "POST", body: JSON.stringify(input) },
+  );
+}
+
+export function resetWebsiteSalesDiagnosisWizard(tenantId?: string) {
+  return request<{ report: WebsiteSalesDiagnosisReport }>(
+    "/agents/website-sales/diagnosis/reset",
+    { method: "POST", body: JSON.stringify({ tenantId }) },
   );
 }
 

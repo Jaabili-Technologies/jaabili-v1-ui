@@ -8,7 +8,6 @@ import {
 } from "react";
 import { Link } from "wouter";
 import {
-  Bot,
   ChevronDown,
   CircleDollarSign,
   Clock3,
@@ -36,6 +35,7 @@ import iconDark from "@assets/jaabili-icon-dark.png";
 import iconLight from "@assets/jaabili-icon-light.png";
 import { cn } from "@/lib/utils";
 import { BrandPreloader } from "@/components/ui/brand-loader";
+import { NovaAgentIcon } from "@/components/ui/agent-icons";
 import {
   agentOptions,
   labelOptions,
@@ -46,6 +46,7 @@ import {
 } from "@/lib/agent-lab-config";
 import {
   analyzeWebsiteSalesActivation,
+  answerWebsiteSalesDataRequest,
   approveWebsiteSalesActivation,
   chatWithWebsiteSalesAgent,
   createAgentTenant,
@@ -64,6 +65,8 @@ import {
   listWebsiteSalesActivationPlans,
   listTenantKnowledgeSources,
   registerTenantKnowledgeSource,
+  resetWebsiteSalesDiagnosisWizard,
+  updateWebsiteSalesDiagnosisSolutions,
   uploadTenantKnowledgeFile,
   updateWebsiteSalesConversationLabels,
   updateWebsiteSalesAgentSettings,
@@ -80,9 +83,11 @@ import {
   type TrainingExample,
   type WebsiteSalesActivationPlan,
   type WebsiteSalesConversationAudit,
+  type WebsiteSalesDataAnswerMode,
   type WebsiteSalesDiagnosisReport,
   type WebsiteSalesLearningReport,
   type WebsiteSalesOperationsReport,
+  type WebsiteSalesWizardTurn,
 } from "@/lib/website-sales-agent-api";
 
 const fallbackAnalytics: AgentAnalytics = {
@@ -762,13 +767,12 @@ export default function WebsiteSalesAgentPage() {
               error={error}
               analytics={analytics}
               readiness={readiness}
-              sourceCount={selectedTenantSources.length}
+              tenantId={selectedTenantId}
               activationPlan={selectedActivationPlan}
+              isActivationWorking={isActivationWorking}
               diagnosisReport={diagnosisReport}
-              learningReport={learningReport}
               lead={conversationLead}
               messagesEndRef={messagesEndRef}
-              onOpenOnboarding={() => setIsOnboardingOpen(true)}
               onToggleSimulator={() => setIsSimulatorOpen((value) => !value)}
               onMessageChange={setMessage}
               onModelChange={setSelectedModel}
@@ -776,6 +780,9 @@ export default function WebsiteSalesAgentPage() {
               onAttachFile={attachFile}
               onOpenKnowledgeDialog={setKnowledgeDialog}
               onPrompt={(prompt) => sendMessage(promptMessages[prompt] ?? prompt)}
+              onReportUpdate={setDiagnosisReport}
+              onRefreshAll={refreshOperationalData}
+              onApproveActivation={approveActivation}
             />
           </section>
         </main>
@@ -1238,13 +1245,12 @@ function EmptyComposerState({
   error,
   analytics,
   readiness,
-  sourceCount,
+  tenantId,
   activationPlan,
+  isActivationWorking,
   diagnosisReport,
-  learningReport,
   lead,
   messagesEndRef,
-  onOpenOnboarding,
   onToggleSimulator,
   onMessageChange,
   onModelChange,
@@ -1252,6 +1258,9 @@ function EmptyComposerState({
   onAttachFile,
   onOpenKnowledgeDialog,
   onPrompt,
+  onReportUpdate,
+  onRefreshAll,
+  onApproveActivation,
 }: {
   message: string;
   messages: ConversationRecord["messages"];
@@ -1261,13 +1270,12 @@ function EmptyComposerState({
   error: string | null;
   analytics: AgentAnalytics;
   readiness: AgentReadinessReport | null;
-  sourceCount: number;
+  tenantId: string;
   activationPlan: WebsiteSalesActivationPlan | null;
+  isActivationWorking: boolean;
   diagnosisReport: WebsiteSalesDiagnosisReport | null;
-  learningReport: WebsiteSalesLearningReport | null;
   lead: LeadProfile | null;
   messagesEndRef: React.RefObject<HTMLDivElement | null>;
-  onOpenOnboarding: () => void;
   onToggleSimulator: () => void;
   onMessageChange: (value: string) => void;
   onModelChange: (value: string) => void;
@@ -1275,6 +1283,9 @@ function EmptyComposerState({
   onAttachFile: (file: File) => void;
   onOpenKnowledgeDialog: (state: KnowledgeDialogState) => void;
   onPrompt: (prompt: string) => void;
+  onReportUpdate: (report: WebsiteSalesDiagnosisReport) => void;
+  onRefreshAll: () => void;
+  onApproveActivation: (planId: string) => void;
 }) {
   const surfaceRef = useRef<HTMLDivElement>(null);
 
@@ -1287,258 +1298,263 @@ function EmptyComposerState({
       ref={surfaceRef}
       className="mx-auto flex min-h-0 w-full max-w-7xl flex-1 flex-col justify-start overflow-y-auto px-3 pb-6 pt-5 sm:px-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
     >
-      <SalesCommandCenter
-        analytics={analytics}
-        readiness={readiness}
-        sourceCount={sourceCount}
-        activationPlan={activationPlan}
+      <AgentWorkspaceHero
+        tenantId={tenantId}
         diagnosisReport={diagnosisReport}
-        learningReport={learningReport}
-        onOpenOnboarding={onOpenOnboarding}
-        onOpenKnowledgeDialog={onOpenKnowledgeDialog}
-      />
-
-      <AgentBuildWorkspace
-        sourceCount={sourceCount}
         activationPlan={activationPlan}
-        diagnosisReport={diagnosisReport}
-        readiness={readiness}
-        onOpenOnboarding={onOpenOnboarding}
-        onOpenKnowledgeDialog={onOpenKnowledgeDialog}
+        isActivationWorking={isActivationWorking}
+        onReportUpdate={onReportUpdate}
+        onRefreshAll={onRefreshAll}
+        onApproveActivation={onApproveActivation}
       />
 
-      <VisitorSimulatorPanel
-        isOpen={isSimulatorOpen}
-        messages={messages}
-        message={message}
-        selectedModel={selectedModel}
-        isSending={isSending}
-        activationPlan={activationPlan}
-        lead={lead}
-        analytics={analytics}
-        readiness={readiness}
-        messagesEndRef={messagesEndRef}
-        onToggle={onToggleSimulator}
-        onMessageChange={onMessageChange}
-        onModelChange={onModelChange}
-        onSend={onSend}
-        onAttachFile={onAttachFile}
-        onOpenKnowledgeDialog={onOpenKnowledgeDialog}
-        onPrompt={onPrompt}
-      />
+      <div className="mx-auto mt-4 w-full max-w-3xl">
+        <VisitorSimulatorPanel
+          isOpen={isSimulatorOpen}
+          messages={messages}
+          message={message}
+          selectedModel={selectedModel}
+          isSending={isSending}
+          activationPlan={activationPlan}
+          lead={lead}
+          analytics={analytics}
+          readiness={readiness}
+          messagesEndRef={messagesEndRef}
+          onToggle={onToggleSimulator}
+          onMessageChange={onMessageChange}
+          onModelChange={onModelChange}
+          onSend={onSend}
+          onAttachFile={onAttachFile}
+          onOpenKnowledgeDialog={onOpenKnowledgeDialog}
+          onPrompt={onPrompt}
+        />
 
-      {error && <div className="mt-4 text-sm text-red-300">{error}</div>}
+        {error && <div className="mt-4 text-sm text-red-300">{error}</div>}
+      </div>
     </div>
   );
 }
 
-function AgentBuildWorkspace({
-  sourceCount,
-  activationPlan,
+/**
+ * The single, primary workspace surface: a percentage-based progress on the
+ * business problem analysis, and the conversational diagnosis itself (or the
+ * results once complete) inline — not buried behind a drawer or split across
+ * separate stat/setup panels.
+ */
+function AgentWorkspaceHero({
+  tenantId,
   diagnosisReport,
-  readiness,
-  onOpenOnboarding,
-  onOpenKnowledgeDialog,
+  activationPlan,
+  isActivationWorking,
+  onReportUpdate,
+  onRefreshAll,
+  onApproveActivation,
 }: {
-  sourceCount: number;
-  activationPlan: WebsiteSalesActivationPlan | null;
+  tenantId: string;
   diagnosisReport: WebsiteSalesDiagnosisReport | null;
-  readiness: AgentReadinessReport | null;
-  onOpenOnboarding: () => void;
-  onOpenKnowledgeDialog: (state: KnowledgeDialogState) => void;
+  activationPlan: WebsiteSalesActivationPlan | null;
+  isActivationWorking: boolean;
+  onReportUpdate: (report: WebsiteSalesDiagnosisReport) => void;
+  onRefreshAll: () => void;
+  onApproveActivation: (planId: string) => void;
 }) {
-  const neededData = diagnosisReport?.dataRequests.filter(
-    (request) => request.status === "needed",
-  ) ?? [];
-  const selectedSolutions = diagnosisReport?.solutionOptions.filter(
-    (solution) => solution.status === "selected",
-  ) ?? [];
-  const nextActions = readiness?.nextActions.slice(0, 3) ?? [
-    "Add company website and key offer pages.",
-    "Upload pricing, FAQs, policy, and proof documents.",
-    "Generate analysis before approving live automation.",
-  ];
+  const [draftText, setDraftText] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [wizardError, setWizardError] = useState<string | null>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const wizard = diagnosisReport?.wizard ?? null;
+  const percent =
+    wizard && wizard.totalCount > 0
+      ? Math.round((wizard.answeredCount / wizard.totalCount) * 100)
+      : 0;
+
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
+  }, [wizard?.turnHistory.length]);
+
+  const submitAnswer = async (mode: WebsiteSalesDataAnswerMode, answerText?: string) => {
+    if (!wizard?.currentQuestion) return;
+    setIsSubmitting(true);
+    setWizardError(null);
+    try {
+      const { report } = await answerWebsiteSalesDataRequest({
+        tenantId,
+        dataRequestId: wizard.currentQuestion.dataRequestId,
+        mode,
+        answerText,
+      });
+      onReportUpdate(report);
+      setDraftText("");
+      if (report.wizard.status === "completed") {
+        onRefreshAll();
+      }
+    } catch (err) {
+      setWizardError(err instanceof Error ? err.message : "Could not record that answer.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleReset = async () => {
+    setIsSubmitting(true);
+    setWizardError(null);
+    try {
+      const { report } = await resetWebsiteSalesDiagnosisWizard(tenantId);
+      onReportUpdate(report);
+    } catch (err) {
+      setWizardError(err instanceof Error ? err.message : "Could not restart the conversation.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const toggleResultSolution = async (solutionId: string) => {
+    if (!diagnosisReport) return;
+    const current = diagnosisReport.solutionOptions.find((solution) => solution.id === solutionId);
+    const selectedIds = diagnosisReport.solutionOptions
+      .filter((solution) =>
+        solution.id === solutionId
+          ? current?.status !== "selected"
+          : solution.status === "selected",
+      )
+      .map((solution) => solution.id);
+    try {
+      const { report } = await updateWebsiteSalesDiagnosisSolutions({
+        tenantId,
+        selectedSolutionIds: selectedIds,
+      });
+      onReportUpdate(report);
+    } catch (err) {
+      setWizardError(err instanceof Error ? err.message : "Could not update solution selection.");
+    }
+  };
 
   return (
-    <section className="jaabili-rise-in mx-auto w-full max-w-6xl space-y-3">
-      <div className="grid gap-3 lg:grid-cols-[0.95fr_1.05fr]">
-        <div className="rounded-2xl border border-border bg-card/85 p-4">
-          <div className="mb-3 flex items-center justify-between gap-3">
-            <div>
-              <div className="text-sm font-semibold text-foreground">Company intake</div>
-              <div className="mt-1 text-xs text-foreground/42">
-                Collect the business context before analysis starts.
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={onOpenOnboarding}
-              className="rounded-full bg-foreground px-3 py-2 text-xs font-semibold text-background transition hover:opacity-90"
-            >
-              Open
-            </button>
+    <div className="jaabili-rise-in mx-auto w-full max-w-3xl">
+      <div className="mb-4 flex items-center gap-4 rounded-2xl border border-border bg-card/85 p-4">
+        <ProgressRing percent={percent} />
+        <div className="min-w-0 flex-1">
+          <div className="text-base font-semibold text-foreground">
+            {wizard?.status === "completed"
+              ? "Business analysis complete"
+              : "Business problem analysis"}
           </div>
-          <div className="grid gap-2 sm:grid-cols-2">
-            {[
-              ["Company profile", "Brand, category, locations, contact owner"],
-              ["Sales goal", "Leads, bookings, orders, demos, renewal target"],
-              ["Customer profile", "ICP, buyer pains, objections, decision path"],
-              ["Channels", "Website, WhatsApp, email, campaigns, handoff rules"],
-            ].map(([title, body]) => (
-              <div key={title} className="rounded-2xl bg-black/22 p-3">
-                <div className="text-[13px] font-medium text-foreground/86">{title}</div>
-                <div className="mt-1 text-xs leading-5 text-foreground/42">{body}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="rounded-2xl border border-border bg-card/85 p-4">
-          <div className="mb-3 flex items-center justify-between gap-3">
-            <div>
-              <div className="text-sm font-semibold text-foreground">Source room</div>
-              <div className="mt-1 text-xs text-foreground/42">
-                Add the approved website, offers, policies, FAQs, and assets.
-              </div>
-            </div>
-            <div className="rounded-full bg-foreground/8 px-3 py-1 text-xs text-foreground/60">
-              {sourceCount} source{sourceCount === 1 ? "" : "s"}
-            </div>
-          </div>
-          <div className="grid gap-2 sm:grid-cols-2">
-            {sourceOptions.slice(0, 4).map((source) => {
-              const Icon = source.icon;
-              return (
-                <button
-                  key={source.type}
-                  type="button"
-                  onClick={() =>
-                    onOpenKnowledgeDialog({
-                      type: source.type,
-                      title: source.title,
-                      category: source.category,
-                    })
-                  }
-                  className="flex min-h-14 items-start gap-3 rounded-2xl border border-border bg-black/22 p-3 text-left transition hover:border-primary/35 hover:bg-primary/8"
-                >
-                  <Icon className={cn("mt-0.5 size-4 shrink-0", source.iconClassName)} />
-                  <span>
-                    <span className="block text-sm font-medium text-foreground/82">
-                      Add {source.label}
-                    </span>
-                    <span className="mt-1 block text-xs leading-5 text-foreground/38">
-                      {source.type === "website"
-                        ? "Landing pages, products, offers, and CTAs"
-                        : source.type === "faq"
-                          ? "Common buyer questions and sales objections"
-                          : source.type === "pricing"
-                            ? "Packages, discounts, eligibility, and boundaries"
-                            : source.type === "policy"
-                              ? "Delivery, refund, cancellation, and handoff rules"
-                              : "Brochures, proof, catalogues, and campaign assets"}
-                    </span>
-                  </span>
-                </button>
-              );
-            })}
+          <div className="mt-1 text-sm leading-6 text-foreground/50">
+            {!wizard
+              ? "Preparing Nova's questions for your business."
+              : wizard.status === "completed"
+                ? "Review what Nova found and approve the solutions you want it to work on."
+                : `Nova is asking what it needs to diagnose your sales gaps. ${wizard.answeredCount} of ${wizard.totalCount} answered.`}
           </div>
         </div>
       </div>
 
-      <div className="grid gap-3 lg:grid-cols-[1.1fr_0.9fr]">
-        <div className="rounded-2xl border border-primary/12 bg-card/90 p-4">
-          <div className="mb-3 flex items-center justify-between gap-3">
-            <div>
-              <div className="text-sm font-semibold text-foreground">Analysis board</div>
-              <div className="mt-1 text-xs text-foreground/42">
-                Jaabili studies the company, finds sales leaks, and requests only useful missing data.
-              </div>
-            </div>
-            <span className="rounded-full bg-black/25 px-3 py-1 text-xs text-foreground">
-              {activationPlan ? "analysis generated" : "waiting for setup"}
-            </span>
-          </div>
-          <div className="grid gap-2 md:grid-cols-3">
-            <AnalysisTile
-              title="What is wrong"
-              value={diagnosisReport?.issues[0]?.title ?? "Needs diagnosis"}
-              body={diagnosisReport?.issues[0]?.impact ?? "Generate analysis after adding client details and sources."}
-            />
-            <AnalysisTile
-              title="Missing data"
-              value={`${neededData.length} request${neededData.length === 1 ? "" : "s"}`}
-              body={neededData[0]?.reason ?? "No open request yet. The agent will ask only for useful sales data."}
-            />
-            <AnalysisTile
-              title="Chosen playbook"
-              value={selectedSolutions[0]?.title ?? "Not selected"}
-              body={selectedSolutions[0]?.expectedOutcome ?? "Select the solution the company wants the agent to execute."}
-            />
-          </div>
-          <div className="mt-3 rounded-2xl bg-black/20 p-3">
-            <div className="mb-2 text-xs font-medium uppercase tracking-[0.14em] text-foreground/35">
-              Next best actions
-            </div>
-            <div className="grid gap-2 md:grid-cols-3">
-              {nextActions.map((action) => (
-                <div key={action} className="rounded-xl bg-foreground/[0.04] px-3 py-2 text-xs leading-5 text-foreground/56">
-                  {action}
-                </div>
+      <div className="overflow-hidden rounded-2xl border border-border bg-card/85">
+        {!wizard ? (
+          <div className="p-6 text-sm text-foreground/40">Loading diagnosis...</div>
+        ) : wizard.status === "completed" ? (
+          <DiagnosisResultsView
+            report={diagnosisReport!}
+            activationPlan={activationPlan}
+            isActivationWorking={isActivationWorking}
+            isSubmitting={isSubmitting}
+            error={wizardError}
+            onToggleSolution={toggleResultSolution}
+            onApprove={() => activationPlan && onApproveActivation(activationPlan.id)}
+            onReset={handleReset}
+          />
+        ) : (
+          <>
+            <div ref={scrollRef} className="max-h-[26rem] space-y-4 overflow-y-auto px-5 py-5">
+              {wizard.turnHistory.length === 0 && wizard.currentQuestion && (
+                <WizardTurnBubble
+                  turn={{
+                    id: "first-question",
+                    role: "agent",
+                    dataRequestId: wizard.currentQuestion.dataRequestId,
+                    content: wizard.currentQuestion.prompt,
+                    inputMode: wizard.currentQuestion.inputMode,
+                    createdAt: "",
+                  }}
+                />
+              )}
+              {wizard.turnHistory.map((turn) => (
+                <WizardTurnBubble key={turn.id} turn={turn} />
               ))}
+              {isSubmitting && (
+                <div className="flex gap-3">
+                  <div className="mt-2 size-2 shrink-0 rounded-full bg-primary/70" />
+                  <div className="rounded-3xl px-5 py-3">
+                    <ThinkingDots />
+                  </div>
+                </div>
+              )}
             </div>
-          </div>
-        </div>
-
-        <div className="rounded-2xl border border-primary/12 bg-card p-4">
-          <div className="text-sm font-semibold text-foreground">Launch control</div>
-          <div className="mt-1 text-xs text-foreground/42">
-            Automation starts only after consent and approved sources.
-          </div>
-          <div className="mt-4 space-y-2">
-            {[
-              ["Company approved analysis", Boolean(activationPlan)],
-              ["Consent approved", Boolean(activationPlan?.consentApproved)],
-              ["Ready to pilot", Boolean(readiness?.readyToPilot)],
-            ].map(([label, done]) => (
-              <div key={String(label)} className="flex items-center justify-between rounded-2xl bg-black/22 px-3 py-2">
-                <span className="text-sm text-foreground/68">{label}</span>
-                <span className={cn("rounded-full px-2 py-0.5 text-xs", done ? "bg-primary/15 text-primary" : "bg-foreground/8 text-foreground/45")}>
-                  {done ? "done" : "pending"}
-                </span>
+            {wizardError && (
+              <div className="mx-5 mb-2 rounded-xl border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+                {wizardError}
               </div>
-            ))}
-          </div>
-          <div className="mt-4 rounded-2xl border border-border bg-black/20 p-3">
-            <div className="text-xs font-medium text-foreground/65">24/7 work preview</div>
-            <div className="mt-2 grid gap-2 text-xs leading-5 text-foreground/45">
-              <div>Answer buyer questions from approved knowledge.</div>
-              <div>Capture need, budget, timeline, contact, and consent.</div>
-              <div>Route hot leads to email, WhatsApp, and CRM handoff queue.</div>
+            )}
+            <div className="border-t border-border p-4">
+              {wizard.currentQuestion?.inputMode === "yes_no" ? (
+                <WizardYesNoPrompt
+                  disabled={isSubmitting}
+                  onYes={() => submitAnswer("yes")}
+                  onNo={() => submitAnswer("no")}
+                />
+              ) : (
+                <WizardComposer
+                  value={draftText}
+                  disabled={isSubmitting}
+                  skippable={wizard.currentQuestion?.skippable ?? false}
+                  onChange={setDraftText}
+                  onSend={() => draftText.trim() && submitAnswer("text", draftText.trim())}
+                  onSkip={() => submitAnswer("skip")}
+                />
+              )}
             </div>
-          </div>
-        </div>
+          </>
+        )}
       </div>
-    </section>
-  );
-}
-
-function AnalysisTile({
-  title,
-  value,
-  body,
-}: {
-  title: string;
-  value: string;
-  body: string;
-}) {
-  return (
-    <div className="rounded-2xl border border-border bg-black/20 p-3">
-      <div className="text-xs text-foreground/38">{title}</div>
-      <div className="mt-2 line-clamp-2 text-sm font-semibold text-foreground/86">{value}</div>
-      <div className="mt-2 line-clamp-3 text-xs leading-5 text-foreground/42">{body}</div>
     </div>
   );
 }
+
+function ProgressRing({ percent }: { percent: number }) {
+  const radius = 26;
+  const circumference = 2 * Math.PI * radius;
+  const offset = circumference - (percent / 100) * circumference;
+
+  return (
+    <div className="relative flex size-16 shrink-0 items-center justify-center">
+      <svg className="size-16 -rotate-90" viewBox="0 0 60 60">
+        <circle
+          cx="30"
+          cy="30"
+          r={radius}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="5"
+          className="text-foreground/10"
+        />
+        <circle
+          cx="30"
+          cy="30"
+          r={radius}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="5"
+          strokeDasharray={circumference}
+          strokeDashoffset={offset}
+          strokeLinecap="round"
+          className="text-primary transition-all duration-500"
+        />
+      </svg>
+      <span className="absolute text-sm font-semibold text-foreground">{percent}%</span>
+    </div>
+  );
+}
+
 
 function VisitorSimulatorPanel({
   isOpen,
@@ -1617,7 +1633,7 @@ function VisitorSimulatorPanel({
                 ))}
                 {isSending && (
                   <div className="flex items-center gap-3 text-foreground/45">
-                    <Bot className="size-5 text-primary" />
+                    <NovaAgentIcon className="size-5 text-primary" />
                     <ThinkingDots />
                   </div>
                 )}
@@ -1654,338 +1670,6 @@ function VisitorSimulatorPanel({
   );
 }
 
-function SalesCommandCenter({
-  analytics,
-  readiness,
-  sourceCount,
-  activationPlan,
-  diagnosisReport,
-  learningReport,
-  onOpenOnboarding,
-  onOpenKnowledgeDialog,
-}: {
-  analytics: AgentAnalytics;
-  readiness: AgentReadinessReport | null;
-  sourceCount: number;
-  activationPlan: WebsiteSalesActivationPlan | null;
-  diagnosisReport: WebsiteSalesDiagnosisReport | null;
-  learningReport: WebsiteSalesLearningReport | null;
-  onOpenOnboarding: () => void;
-  onOpenKnowledgeDialog: (state: KnowledgeDialogState) => void;
-}) {
-  const qualifiedLeads = analytics.hotLeads + analytics.mediumLeads;
-  const conversionRate =
-    analytics.totalConversations > 0
-      ? Math.round((analytics.leadsCaptured / analytics.totalConversations) * 100)
-      : 0;
-  const sourceProgress = Math.min(sourceCount, sourceOptions.length);
-  const diagnosisOpenItems =
-    diagnosisReport?.dataRequests.filter((request) => request.status === "needed")
-      .length ?? 0;
-  const selectedSolutions =
-    diagnosisReport?.solutionOptions.filter((solution) => solution.status === "selected")
-      .length ?? 0;
-  const currentStage = activationPlan?.consentApproved
-    ? learningReport && learningReport.labelStats.labeledConversations >= 5
-      ? "Pilot learning"
-      : "Live pilot"
-    : activationPlan
-      ? "Consent review"
-      : sourceProgress >= 3
-        ? "Analysis ready"
-        : "Setup";
-
-  return (
-    <div className="jaabili-rise-in mx-auto mb-4 w-full max-w-6xl">
-      <div className="mb-4 rounded-2xl border border-border bg-card/85 p-4 sm:p-5">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-          <div className="min-w-0">
-            <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-primary/25 bg-primary/8 px-3 py-1 text-xs font-medium text-primary">
-              <Target className="size-3.5" />
-              Nova · Website Sales Agent
-            </div>
-            <h1 className="max-w-3xl text-2xl font-semibold tracking-normal text-foreground/92 md:text-[1.9rem]">
-              Prepare Nova to study your company before it starts working.
-            </h1>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-foreground/50">
-              Add company details, approved sources, pricing, policies, and assets. Jaabili then diagnoses sales gaps, recommends playbooks, asks for missing data, and waits for launch consent.
-            </p>
-          </div>
-          <div className="shrink-0 rounded-2xl border border-primary/20 bg-card px-4 py-3">
-            <div className="text-xs uppercase tracking-[0.16em] text-foreground/35">
-              Current stage
-            </div>
-            <div className="mt-1 text-lg font-semibold text-foreground">
-              {currentStage}
-            </div>
-            <div className="mt-1 text-xs text-foreground/42">
-              {activationPlan?.consentApproved
-                ? "Agent can operate from approved sources."
-                : "Complete setup before live automation."}
-            </div>
-          </div>
-        </div>
-
-        <div className="mt-4 grid gap-2 md:grid-cols-5">
-          <FlowStepCard
-            index={1}
-            title="Company"
-            body="Profile, offer, ICP, channels"
-            done={sourceProgress > 0 || Boolean(activationPlan)}
-          />
-          <FlowStepCard
-            index={2}
-            title="Knowledge"
-            body={`${sourceProgress}/${sourceOptions.length} sources ready`}
-            done={sourceProgress >= sourceOptions.length}
-          />
-          <FlowStepCard
-            index={3}
-            title="Diagnosis"
-            body={
-              diagnosisReport
-                ? `${diagnosisOpenItems} open data request${diagnosisOpenItems === 1 ? "" : "s"}`
-                : "Generate sales analysis"
-            }
-            done={Boolean(diagnosisReport)}
-          />
-          <FlowStepCard
-            index={4}
-            title="Solutions"
-            body={`${selectedSolutions} playbook${selectedSolutions === 1 ? "" : "s"} selected`}
-            done={selectedSolutions > 0}
-          />
-          <FlowStepCard
-            index={5}
-            title="Launch"
-            body={activationPlan?.consentApproved ? "Consent approved" : "Needs approval"}
-            done={Boolean(activationPlan?.consentApproved)}
-          />
-        </div>
-
-        <div className="mt-4 flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={onOpenOnboarding}
-            className="inline-flex h-10 items-center gap-2 rounded-full bg-foreground px-4 text-sm font-semibold text-background transition hover:opacity-90"
-          >
-            <Target className="size-4" />
-            Set up company
-          </button>
-          {sourceOptions.slice(0, 3).map((source) => {
-            const Icon = source.icon;
-            return (
-              <button
-                key={source.type}
-                type="button"
-                onClick={() =>
-                  onOpenKnowledgeDialog({
-                    type: source.type,
-                    title: source.title,
-                    category: source.category,
-                  })
-                }
-                className="inline-flex h-10 items-center gap-2 rounded-full border border-border bg-foreground/[0.03] px-3 text-sm text-foreground/70 transition hover:bg-foreground/8"
-              >
-                <Icon className={cn("size-4", source.iconClassName)} />
-                Add {source.label}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
-        <SalesSignalCard
-          icon={MessageSquare}
-          label="Conversations"
-          value={analytics.totalConversations}
-          tone="blue"
-        />
-        <SalesSignalCard
-          icon={CircleDollarSign}
-          label="Leads captured"
-          value={analytics.leadsCaptured}
-          tone="green"
-        />
-        <SalesSignalCard
-          icon={TrendingUp}
-          label="Qualified"
-          value={qualifiedLeads}
-          tone="gold"
-        />
-        <SalesSignalCard
-          icon={Clock3}
-          label={`${conversionRate}% lead conversion`}
-          value={sourceCount}
-          suffix={sourceCount === 1 ? "source" : "sources"}
-          tone="violet"
-        />
-      </div>
-
-      <div className="mt-3 grid gap-2 lg:grid-cols-[1.15fr_0.85fr]">
-        <div className="rounded-2xl border border-border bg-foreground/[0.025] p-3">
-          <div className="mb-2 flex items-center justify-between text-xs text-foreground/40">
-            <span>Agent operating loop</span>
-            <span>setup to launch to learning</span>
-          </div>
-          <div className="grid gap-2 sm:grid-cols-4">
-            {[
-              ["Study", "Website, offers, proof"],
-              ["Diagnose", "Leaks, gaps, risks"],
-              ["Operate", "Qualify and route leads"],
-              ["Learn", "Labels improve answers"],
-            ].map(([title, body], index) => (
-              <div key={title} className="rounded-xl bg-card/80 p-3">
-                <div className="mb-1.5 flex size-5 items-center justify-center rounded-full bg-foreground/8 text-[11px] text-foreground/70">
-                  {index + 1}
-                </div>
-                <div className="text-sm font-medium text-foreground/86">{title}</div>
-                <div className="mt-1 text-xs leading-5 text-foreground/38">{body}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-1">
-          <ReadinessSummaryCard readiness={readiness} />
-          <LearningSummaryCard learningReport={learningReport} />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function FlowStepCard({
-  index,
-  title,
-  body,
-  done,
-}: {
-  index: number;
-  title: string;
-  body: string;
-  done: boolean;
-}) {
-  return (
-    <div
-      className={cn(
-        "min-h-24 rounded-2xl border p-3",
-        done
-          ? "border-primary/25 bg-primary/8"
-          : "border-border bg-black/20",
-      )}
-    >
-      <div className="mb-2 flex items-center justify-between">
-        <span
-          className={cn(
-            "flex size-6 items-center justify-center rounded-full text-xs font-semibold",
-            done ? "bg-primary/20 text-primary" : "bg-foreground/8 text-foreground/55",
-          )}
-        >
-          {done ? <Check className="size-3.5" /> : index}
-        </span>
-      </div>
-      <div className="text-sm font-semibold text-foreground/88">{title}</div>
-      <div className="mt-1 text-xs leading-5 text-foreground/42">{body}</div>
-    </div>
-  );
-}
-
-function ReadinessSummaryCard({
-  readiness,
-}: {
-  readiness: AgentReadinessReport | null;
-}) {
-  return (
-    <div className="rounded-2xl border border-secondary/15 bg-secondary/5 p-3">
-      <div className="flex items-center justify-between gap-3">
-        <div className="text-xs font-medium text-secondary">Readiness</div>
-        <div className="rounded-full bg-black/25 px-2 py-0.5 text-xs text-foreground/75">
-          {readiness ? `${readiness.grade} / ${readiness.score}` : "checking"}
-        </div>
-      </div>
-      <div className="mt-2 text-sm leading-6 text-foreground/65">
-        {readiness
-          ? readiness.readyToPilot
-            ? "Ready for controlled pilot testing."
-            : readiness.nextActions[0] ?? "Add more client data before publishing."
-          : "Checking sources, lead quality, and labels."}
-      </div>
-      {readiness?.gaps[0] && (
-        <div className="mt-2 rounded-xl bg-black/20 px-3 py-2 text-xs leading-5 text-foreground/48">
-          Gap: {readiness.gaps[0]}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function LearningSummaryCard({
-  learningReport,
-}: {
-  learningReport: WebsiteSalesLearningReport | null;
-}) {
-  return (
-    <div className="rounded-2xl border border-primary/15 bg-card p-3">
-      <div className="flex items-center justify-between gap-3">
-        <div className="text-xs font-medium text-foreground">Learning loop</div>
-        <div className="rounded-full bg-black/25 px-2 py-0.5 text-xs text-foreground/75">
-          {learningReport ? `${learningReport.learningScore}/100` : "waiting"}
-        </div>
-      </div>
-      <div className="mt-2 text-sm leading-6 text-foreground/65">
-        {learningReport
-          ? learningReport.nextTrainingStep
-          : "Run test chats and label answers after launch consent."}
-      </div>
-      {learningReport && (
-        <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-foreground/45">
-          <span className="rounded-full bg-foreground/8 px-2 py-1">
-            {learningReport.stage}
-          </span>
-          <span className="rounded-full bg-foreground/8 px-2 py-1">
-            {learningReport.labelStats.labeledConversations} labeled
-          </span>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function SalesSignalCard({
-  icon: Icon,
-  label,
-  value,
-  suffix,
-  tone,
-}: {
-  icon: typeof MessageSquare;
-  label: string;
-  value: number;
-  suffix?: string;
-  tone: "blue" | "green" | "gold" | "violet";
-}) {
-  const tones = {
-    blue: "text-primary bg-primary/10",
-    green: "text-primary bg-primary/10",
-    gold: "text-secondary bg-secondary/10",
-    violet: "text-accent bg-accent/10",
-  };
-
-  return (
-    <div className="rounded-2xl border border-border bg-card/85 p-2.5">
-      <div className={cn("mb-2 flex size-7 items-center justify-center rounded-full", tones[tone])}>
-        <Icon className="size-4" />
-      </div>
-      <div className="flex items-end gap-1">
-        <span className="text-xl font-semibold text-foreground">{value}</span>
-        {suffix && <span className="pb-0.5 text-xs text-foreground/38">{suffix}</span>}
-      </div>
-      <div className="mt-0.5 text-xs text-foreground/42">{label}</div>
-    </div>
-  );
-}
 
 function ConversationState({
   messages,
@@ -2036,7 +1720,7 @@ function ConversationState({
           ))}
           {isSending && (
             <div className="flex items-center gap-3 text-foreground/45">
-              <Bot className="size-5 text-primary" />
+              <NovaAgentIcon className="size-5 text-primary" />
               <ThinkingDots />
             </div>
           )}
@@ -2687,138 +2371,17 @@ function InspectorDrawer({
                 <p className="mt-3 text-sm leading-6 text-foreground/70">
                   {diagnosisReport.summary}
                 </p>
-                <p className="mt-3 rounded-xl border border-border bg-black/20 px-3 py-2 text-xs leading-5 text-foreground/50">
-                  {diagnosisReport.consentPrompt}
-                </p>
               </div>
-
-              {diagnosisReport.issues.length > 0 && (
-                <div className="space-y-2">
-                  {diagnosisReport.issues.slice(0, 3).map((issue) => (
-                    <div key={issue.id} className="rounded-2xl bg-card p-4">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <div className="truncate text-sm font-medium text-foreground/85">
-                            {issue.title}
-                          </div>
-                          <div className="mt-1 text-xs leading-5 text-foreground/45">
-                            {issue.impact}
-                          </div>
-                        </div>
-                        <SeverityPill severity={issue.severity} />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              <div className="rounded-2xl bg-card p-4">
-                <div className="mb-3 flex items-center justify-between">
-                  <div className="text-xs uppercase tracking-[0.16em] text-foreground/35">
-                    Data needed
-                  </div>
-                  <div className="text-xs text-foreground/35">
-                    {diagnosisReport.dataRequests.filter((item) => item.status === "needed").length} open
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  {diagnosisReport.dataRequests.slice(0, 5).map((request) => (
-                    <div
-                      key={request.id}
-                      className="rounded-xl border border-border bg-black/20 px-3 py-3"
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <div className="truncate text-sm text-foreground/82">
-                            {request.title}
-                          </div>
-                          <div className="mt-1 text-xs leading-5 text-foreground/42">
-                            {request.reason}
-                          </div>
-                        </div>
-                        <span
-                          className={cn(
-                            "shrink-0 rounded-full px-2 py-1 text-[11px]",
-                            request.status === "provided" &&
-                              "bg-primary/15 text-primary",
-                            request.status === "skipped" &&
-                              "bg-foreground/8 text-foreground/45",
-                            request.status === "needed" &&
-                              "bg-secondary/15 text-secondary",
-                          )}
-                        >
-                          {request.status}
-                        </span>
-                      </div>
-                      <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-foreground/38">
-                        <span className="rounded-full bg-foreground/8 px-2 py-1">
-                          {request.sensitivity}
-                        </span>
-                        <span className="rounded-full bg-foreground/8 px-2 py-1">
-                          {request.category}
-                        </span>
-                      </div>
-                      {request.canSkip && request.status !== "provided" && (
-                        <button
-                          type="button"
-                          onClick={() => onToggleDiagnosisDataSkip(request.id)}
-                          className="mt-3 h-8 rounded-full border border-border px-3 text-xs font-medium text-foreground/70 transition hover:bg-foreground/8"
-                        >
-                          {request.status === "skipped" ? "Need this data" : "Skip for now"}
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                </div>
+              <div className="flex items-center justify-between rounded-2xl bg-card p-4">
+                <span className="text-sm text-foreground/70">
+                  {diagnosisReport.wizard.status === "completed"
+                    ? "Conversation complete"
+                    : "Conversation in progress"}
+                </span>
+                <span className="rounded-full bg-black/20 px-2 py-1 text-xs text-foreground/60">
+                  {diagnosisReport.wizard.answeredCount}/{diagnosisReport.wizard.totalCount} answered
+                </span>
               </div>
-
-              <div className="space-y-2">
-                {diagnosisReport.solutionOptions.slice(0, 4).map((solution) => (
-                  <button
-                    key={solution.id}
-                    type="button"
-                    onClick={() => onToggleDiagnosisSolution(solution.id)}
-                    className={cn(
-                      "w-full rounded-2xl border p-4 text-left transition",
-                      solution.status === "selected"
-                        ? "border-primary/50 bg-card"
-                        : "border-border bg-card hover:border-border",
-                    )}
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <div className="truncate text-sm font-semibold text-foreground/90">
-                          {solution.title}
-                        </div>
-                        <div className="mt-1 text-xs leading-5 text-foreground/45">
-                          {solution.expectedOutcome}
-                        </div>
-                      </div>
-                      <span
-                        className={cn(
-                          "shrink-0 rounded-full px-2 py-1 text-[11px]",
-                          solution.status === "selected"
-                            ? "bg-primary/15 text-foreground"
-                            : "bg-foreground/8 text-foreground/45",
-                        )}
-                      >
-                        {solution.status}
-                      </span>
-                    </div>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {solution.kpis.slice(0, 3).map((kpi) => (
-                        <span
-                          key={kpi}
-                          className="rounded-full bg-foreground/8 px-2 py-1 text-[11px] text-foreground/45"
-                        >
-                          {kpi}
-                        </span>
-                      ))}
-                    </div>
-                  </button>
-                ))}
-              </div>
-
               <div className="rounded-2xl border border-border bg-black/20 p-4 text-sm leading-6 text-foreground/60">
                 {diagnosisReport.nextBestStep}
               </div>
@@ -3230,6 +2793,479 @@ function InspectorDrawer({
         </InspectorBlock>
       </aside>
     </>
+  );
+}
+
+function DiagnosisWizardDrawer({
+  isOpen,
+  tenantId,
+  diagnosisReport,
+  activationPlan,
+  isActivationWorking,
+  onClose,
+  onReportUpdate,
+  onRefreshAll,
+  onApproveActivation,
+}: {
+  isOpen: boolean;
+  tenantId: string;
+  diagnosisReport: WebsiteSalesDiagnosisReport | null;
+  activationPlan: WebsiteSalesActivationPlan | null;
+  isActivationWorking: boolean;
+  onClose: () => void;
+  onReportUpdate: (report: WebsiteSalesDiagnosisReport) => void;
+  onRefreshAll: () => void;
+  onApproveActivation: (planId: string) => void;
+}) {
+  const [draftText, setDraftText] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [wizardError, setWizardError] = useState<string | null>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const wizard = diagnosisReport?.wizard ?? null;
+
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
+  }, [wizard?.turnHistory.length]);
+
+  if (!isOpen) {
+    return null;
+  }
+
+  const submitAnswer = async (mode: WebsiteSalesDataAnswerMode, answerText?: string) => {
+    if (!wizard?.currentQuestion) return;
+    setIsSubmitting(true);
+    setWizardError(null);
+    try {
+      const { report } = await answerWebsiteSalesDataRequest({
+        tenantId,
+        dataRequestId: wizard.currentQuestion.dataRequestId,
+        mode,
+        answerText,
+      });
+      onReportUpdate(report);
+      setDraftText("");
+      if (report.wizard.status === "completed") {
+        onRefreshAll();
+      }
+    } catch (err) {
+      setWizardError(err instanceof Error ? err.message : "Could not record that answer.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleReset = async () => {
+    setIsSubmitting(true);
+    setWizardError(null);
+    try {
+      const { report } = await resetWebsiteSalesDiagnosisWizard(tenantId);
+      onReportUpdate(report);
+    } catch (err) {
+      setWizardError(err instanceof Error ? err.message : "Could not restart the conversation.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const toggleResultSolution = async (solutionId: string) => {
+    if (!diagnosisReport) return;
+    const current = diagnosisReport.solutionOptions.find((solution) => solution.id === solutionId);
+    const selectedIds = diagnosisReport.solutionOptions
+      .filter((solution) =>
+        solution.id === solutionId
+          ? current?.status !== "selected"
+          : solution.status === "selected",
+      )
+      .map((solution) => solution.id);
+    try {
+      const { report } = await updateWebsiteSalesDiagnosisSolutions({
+        tenantId,
+        selectedSolutionIds: selectedIds,
+      });
+      onReportUpdate(report);
+    } catch (err) {
+      setWizardError(err instanceof Error ? err.message : "Could not update solution selection.");
+    }
+  };
+
+  return (
+    <>
+      <button
+        className="fixed inset-0 z-40 bg-black/60"
+        onClick={onClose}
+        aria-label="Close diagnosis wizard overlay"
+      />
+      <aside className="fixed inset-y-0 right-0 z-50 flex w-[26rem] max-w-[94vw] flex-col overflow-hidden bg-card shadow-2xl shadow-black/40">
+        <div className="flex items-center justify-between border-b border-border px-5 py-4">
+          <div>
+            <div className="text-lg font-semibold">Business diagnosis</div>
+            <div className="text-sm text-foreground/45">
+              {wizard
+                ? `${wizard.answeredCount}/${wizard.totalCount} answered - ${wizard.industry.replace(/_/g, " ")}`
+                : "Loading"}
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="inline-flex size-9 items-center justify-center rounded-full hover:bg-foreground/10"
+            aria-label="Close diagnosis wizard"
+          >
+            <X className="size-5" />
+          </button>
+        </div>
+
+        {!wizard || !diagnosisReport ? (
+          <div className="flex-1 p-5 text-sm text-foreground/40">
+            Preparing the diagnosis conversation.
+          </div>
+        ) : wizard.status === "completed" ? (
+          <DiagnosisResultsView
+            report={diagnosisReport}
+            activationPlan={activationPlan}
+            isActivationWorking={isActivationWorking}
+            isSubmitting={isSubmitting}
+            error={wizardError}
+            onToggleSolution={toggleResultSolution}
+            onApprove={() => activationPlan && onApproveActivation(activationPlan.id)}
+            onReset={handleReset}
+          />
+        ) : (
+          <>
+            <div ref={scrollRef} className="flex-1 space-y-4 overflow-y-auto px-5 py-5">
+              {wizard.turnHistory.map((turn) => (
+                <WizardTurnBubble key={turn.id} turn={turn} />
+              ))}
+              {isSubmitting && (
+                <div className="flex gap-3">
+                  <div className="mt-2 size-2 shrink-0 rounded-full bg-primary/70" />
+                  <div className="rounded-3xl px-5 py-3">
+                    <ThinkingDots />
+                  </div>
+                </div>
+              )}
+            </div>
+            {wizardError && (
+              <div className="mx-5 mb-2 rounded-xl border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+                {wizardError}
+              </div>
+            )}
+            <div className="border-t border-border p-4">
+              {wizard.currentQuestion?.inputMode === "yes_no" ? (
+                <WizardYesNoPrompt
+                  disabled={isSubmitting}
+                  onYes={() => submitAnswer("yes")}
+                  onNo={() => submitAnswer("no")}
+                />
+              ) : (
+                <WizardComposer
+                  value={draftText}
+                  disabled={isSubmitting}
+                  skippable={wizard.currentQuestion?.skippable ?? false}
+                  onChange={setDraftText}
+                  onSend={() => draftText.trim() && submitAnswer("text", draftText.trim())}
+                  onSkip={() => submitAnswer("skip")}
+                />
+              )}
+            </div>
+          </>
+        )}
+      </aside>
+    </>
+  );
+}
+
+function WizardTurnBubble({ turn }: { turn: WebsiteSalesWizardTurn }) {
+  const isOwner = turn.role === "owner";
+
+  return (
+    <div className={cn("flex gap-3", isOwner && "justify-end")}>
+      {!isOwner && <div className="mt-2 size-2 shrink-0 rounded-full bg-primary/70" />}
+      <div
+        className={cn(
+          "max-w-[85%] whitespace-pre-wrap rounded-3xl px-5 py-3 text-[14px] leading-6",
+          isOwner ? "bg-black/20 text-foreground" : "text-foreground/78",
+        )}
+      >
+        {turn.content}
+      </div>
+      {isOwner && <div className="mt-2 size-2 shrink-0 rounded-full bg-foreground/45" />}
+    </div>
+  );
+}
+
+function WizardComposer({
+  value,
+  disabled,
+  skippable,
+  onChange,
+  onSend,
+  onSkip,
+}: {
+  value: string;
+  disabled: boolean;
+  skippable: boolean;
+  onChange: (value: string) => void;
+  onSend: () => void;
+  onSkip: () => void;
+}) {
+  return (
+    <div className="space-y-2">
+      <div className="flex items-end gap-2 rounded-2xl border border-border bg-black/20 px-3 py-2">
+        <textarea
+          value={value}
+          disabled={disabled}
+          onChange={(event) => onChange(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" && !event.shiftKey) {
+              event.preventDefault();
+              onSend();
+            }
+          }}
+          rows={2}
+          placeholder="Type your answer..."
+          className="min-h-9 flex-1 resize-none bg-transparent text-sm outline-none placeholder:text-foreground/35"
+        />
+        <button
+          type="button"
+          onClick={onSend}
+          disabled={disabled || !value.trim()}
+          className="inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground disabled:opacity-40"
+          aria-label="Send answer"
+        >
+          <Send className="size-4" />
+        </button>
+      </div>
+      {skippable && (
+        <button
+          type="button"
+          onClick={onSkip}
+          disabled={disabled}
+          className="h-8 rounded-full border border-border px-3 text-xs font-medium text-foreground/60 hover:bg-foreground/8"
+        >
+          Skip for now
+        </button>
+      )}
+    </div>
+  );
+}
+
+function WizardYesNoPrompt({
+  disabled,
+  onYes,
+  onNo,
+}: {
+  disabled: boolean;
+  onYes: () => void;
+  onNo: () => void;
+}) {
+  return (
+    <div className="flex gap-2">
+      <button
+        type="button"
+        onClick={onYes}
+        disabled={disabled}
+        className="h-10 flex-1 rounded-full bg-primary text-sm font-semibold text-primary-foreground disabled:opacity-50"
+      >
+        Yes, share it
+      </button>
+      <button
+        type="button"
+        onClick={onNo}
+        disabled={disabled}
+        className="h-10 flex-1 rounded-full border border-border text-sm font-medium text-foreground/70 hover:bg-foreground/8"
+      >
+        No, keep it general
+      </button>
+    </div>
+  );
+}
+
+export function DiagnosisResultsView({
+  report,
+  activationPlan,
+  isActivationWorking,
+  isSubmitting,
+  error,
+  onToggleSolution,
+  onApprove,
+  onReset,
+}: {
+  report: WebsiteSalesDiagnosisReport;
+  activationPlan: WebsiteSalesActivationPlan | null;
+  isActivationWorking: boolean;
+  isSubmitting: boolean;
+  error: string | null;
+  onToggleSolution: (solutionId: string) => void;
+  onApprove: () => void;
+  onReset: () => void;
+}) {
+  const selectedSolutions = report.solutionOptions.filter(
+    (solution) => solution.status === "selected",
+  );
+  const isApproved = activationPlan?.consentApproved ?? false;
+
+  return (
+    <div className="flex-1 space-y-6 overflow-y-auto px-5 py-5">
+      <div className="rounded-2xl border border-primary/25 bg-primary/10 p-4">
+        <div className="text-xs uppercase tracking-[0.16em] text-foreground/40">
+          Diagnosis complete
+        </div>
+        <p className="mt-2 text-sm leading-6 text-foreground/80">{report.summary}</p>
+      </div>
+
+      <section>
+        <h3 className="mb-2 text-sm font-semibold text-foreground/70">
+          Where {report.companySnapshot.name} is losing sales
+        </h3>
+        <div className="space-y-2">
+          {report.issues.map((issue) => (
+            <div key={issue.id} className="rounded-2xl bg-black/20 p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="text-sm font-medium text-foreground/85">{issue.title}</div>
+                  <div className="mt-1 text-xs leading-5 text-foreground/45">{issue.impact}</div>
+                </div>
+                <SeverityPill severity={issue.severity} />
+              </div>
+            </div>
+          ))}
+          {report.issues.length === 0 && (
+            <div className="rounded-2xl border border-dashed border-border p-4 text-xs text-foreground/40">
+              No material sales-blocking issues found.
+            </div>
+          )}
+        </div>
+      </section>
+
+      <section>
+        <div className="mb-2 flex items-center justify-between">
+          <h3 className="text-sm font-semibold text-foreground/70">Recommended solutions</h3>
+          <span className="text-xs text-foreground/40">Select what Nova should work on</span>
+        </div>
+        <div className="space-y-2">
+          {report.solutionOptions.map((solution) => (
+            <button
+              key={solution.id}
+              type="button"
+              onClick={() => onToggleSolution(solution.id)}
+              className={cn(
+                "w-full rounded-2xl border p-4 text-left transition",
+                solution.status === "selected"
+                  ? "border-primary/50 bg-primary/10"
+                  : "border-border bg-black/20 hover:border-foreground/20",
+              )}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="text-sm font-semibold text-foreground/90">{solution.title}</div>
+                  <div className="mt-1 text-xs leading-5 text-foreground/50">{solution.problem}</div>
+                  <div className="mt-2 text-xs leading-5 text-foreground/40">
+                    {solution.expectedOutcome}
+                  </div>
+                </div>
+                <span
+                  className={cn(
+                    "shrink-0 rounded-full px-2 py-1 text-[11px]",
+                    solution.status === "selected"
+                      ? "bg-primary/20 text-foreground"
+                      : "bg-foreground/8 text-foreground/45",
+                  )}
+                >
+                  {solution.status === "selected" ? "Selected" : "Select"}
+                </span>
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {solution.kpis.slice(0, 3).map((kpi) => (
+                  <span
+                    key={kpi}
+                    className="rounded-full bg-foreground/8 px-2 py-1 text-[11px] text-foreground/45"
+                  >
+                    {kpi}
+                  </span>
+                ))}
+              </div>
+            </button>
+          ))}
+        </div>
+      </section>
+
+      {activationPlan && (
+        <section className="space-y-3">
+          <h3 className="text-sm font-semibold text-foreground/70">
+            What Nova will do once approved
+          </h3>
+          <div className="rounded-2xl bg-black/20 p-4 text-xs leading-6 text-foreground/60">
+            <div className="mb-2 text-[11px] uppercase tracking-[0.14em] text-foreground/35">
+              Sales thesis
+            </div>
+            <ul className="list-disc space-y-1 pl-4">
+              {activationPlan.report.salesThesis.slice(0, 3).map((line) => (
+                <li key={line}>{line}</li>
+              ))}
+            </ul>
+          </div>
+          <div className="rounded-2xl bg-black/20 p-4 text-xs leading-6 text-foreground/60">
+            <div className="mb-2 text-[11px] uppercase tracking-[0.14em] text-foreground/35">
+              Human escalation rules
+            </div>
+            <ul className="list-disc space-y-1 pl-4">
+              {activationPlan.report.humanEscalationRules.slice(0, 3).map((line) => (
+                <li key={line}>{line}</li>
+              ))}
+            </ul>
+          </div>
+          <div className="rounded-2xl bg-black/20 p-4 text-xs leading-6 text-foreground/60">
+            <div className="mb-2 text-[11px] uppercase tracking-[0.14em] text-foreground/35">
+              Success metrics we will track
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {activationPlan.report.successMetrics.slice(0, 5).map((metric) => (
+                <span
+                  key={metric}
+                  className="rounded-full bg-foreground/8 px-2 py-1 text-[11px] text-foreground/50"
+                >
+                  {metric}
+                </span>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {error && (
+        <div className="rounded-xl border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+          {error}
+        </div>
+      )}
+
+      <div className="space-y-2 pb-2">
+        {isApproved ? (
+          <div className="flex items-center gap-2 rounded-full bg-primary/15 px-4 py-3 text-sm font-medium text-primary">
+            <Check className="size-4" /> Live: {selectedSolutions.length || "all"} solution(s)
+            approved and running
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={onApprove}
+            disabled={!activationPlan || isActivationWorking}
+            className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-full bg-primary text-sm font-semibold text-primary-foreground disabled:opacity-50"
+          >
+            {isActivationWorking && <Loader2 className="size-4 animate-spin" />}
+            Approve and let Nova start working
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={onReset}
+          disabled={isSubmitting}
+          className="h-10 w-full rounded-full border border-border text-xs font-medium text-foreground/55 hover:bg-foreground/8"
+        >
+          Restart diagnosis conversation
+        </button>
+      </div>
+    </div>
   );
 }
 

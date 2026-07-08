@@ -26,6 +26,7 @@ import SignUp from "@/pages/sign-up";
 import Onboarding from "@/pages/onboarding";
 import Dashboard from "@/pages/dashboard";
 import WebsiteSalesAgentPage from "@/pages/website-sales-agent";
+import MarketingAgentPage from "@/pages/marketing-agent";
 import Terms from "@/pages/terms";
 import Privacy from "@/pages/privacy";
 import PaymentResult from "@/pages/payment-result";
@@ -40,6 +41,7 @@ const FULLSCREEN_ROUTES = [
   "/dashboard",
   "/dashboard/agents/website-sales",
   "/agents/website-sales",
+  "/dashboard/agents/marketing",
   "/terms",
   "/privacy",
   "/payment/success",
@@ -104,6 +106,9 @@ function Router() {
               <ProtectedRoute component={WebsiteSalesAgentPage} />
             </Route>
             <Route path="/agents/website-sales" component={WebsiteSalesAgentPage} />
+            <Route path="/dashboard/agents/marketing">
+              <ProtectedRoute component={MarketingAgentPage} />
+            </Route>
             <Route path="/agents" component={Agents} />
             <Route path="/services" component={Services} />
             <Route path="/pricing" component={Pricing} />
