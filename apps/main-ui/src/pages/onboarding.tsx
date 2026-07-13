@@ -610,11 +610,16 @@ export default function Onboarding() {
     });
   };
 
-  const startPineLabsCheckout = async () => {
+  const startPineLabsCheckout = async (tenantId: string | undefined) => {
     if (paymentMode === "gateway") {
+      if (!tenantId) {
+        setLocation("/payment/failure?reason=missing-workspace");
+        return;
+      }
       try {
         const amount = Number(plan.price.replace(/[^\d]/g, ""));
         const checkout = await createPineLabsCheckout({
+          tenantId,
           planId: plan.id,
           planName: plan.name,
           amount,
@@ -623,7 +628,8 @@ export default function Onboarding() {
           customer: {
             name: ownerName,
             email: ownerEmail,
-            phone: "9876543210",
+            // No phone field is collected during onboarding today -- omit
+            // rather than send a fake placeholder number.
           },
         });
         const checkoutUrl = extractCheckoutUrl(checkout);
@@ -646,18 +652,24 @@ export default function Onboarding() {
     persistWorkspace(provision);
 
     if (paymentMode === "gateway") {
-      await startPineLabsCheckout();
+      await startPineLabsCheckout(provision?.tenantId);
       return;
     }
 
     setLocation("/dashboard");
   };
 
+  const provisionAndCheckout = async () => {
+    const provision =
+      activeType === "business" ? await (provisionRef.current ?? Promise.resolve(null)) : null;
+    persistWorkspace(provision);
+    await startPineLabsCheckout(provision?.tenantId);
+  };
+
   const next = () => {
     if (!canContinue) return;
     if (step === 5 && paymentMode === "gateway") {
-      persistWorkspace();
-      void startPineLabsCheckout();
+      void provisionAndCheckout();
       return;
     }
     if (step === 7) {

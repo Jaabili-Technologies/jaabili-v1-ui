@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "wouter";
 import { ArrowLeft, Check, ChevronDown, Loader2 } from "lucide-react";
+import { Bar, BarChart, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { cn } from "@/lib/utils";
 import { MarketingAgentIcon } from "@/components/ui/agent-icons";
 import {
@@ -58,7 +59,7 @@ export default function MarketingAgentPage() {
             <MarketingAgentIcon className="size-4" />
           </div>
           <div>
-            <div className="text-sm font-semibold">Marketing Agent</div>
+            <div className="text-sm font-semibold">Atlas</div>
             <div className="text-xs text-foreground/45">Campaign planning and content strategy</div>
           </div>
         </div>
@@ -194,7 +195,7 @@ export function MarketingWorkspacePanel({ tenantId }: { tenantId: string }) {
           </div>
           <div className="mt-1 text-sm leading-6 text-foreground/50">
             {!wizard
-              ? "Preparing the Marketing Agent's questions."
+              ? "Preparing Atlas's questions."
               : wizard.status === "completed"
                 ? "Review the campaign plan and approve what the agent should work on."
                 : `The agent is asking what it needs to plan your marketing. ${wizard.answeredCount} of ${wizard.totalCount} answered.`}
@@ -356,10 +357,26 @@ function MarketingResultsView({
         <p className="mt-2 text-sm leading-6 text-foreground/80">{report.summary}</p>
       </div>
 
+      {report.pinpointedFindings.length > 0 && (
+        <section>
+          <h3 className="mb-2 text-sm font-semibold text-foreground/70">Specific findings</h3>
+          <div className="rounded-2xl bg-black/20 p-4">
+            <ul className="list-disc space-y-2 pl-4 text-xs leading-5 text-foreground/70">
+              {report.pinpointedFindings.map((finding) => (
+                <li key={finding}>{finding}</li>
+              ))}
+            </ul>
+          </div>
+        </section>
+      )}
+
       <section>
         <h3 className="mb-2 text-sm font-semibold text-foreground/70">
           Where {report.companySnapshot.name}'s marketing is falling short
         </h3>
+        <div className="mb-3">
+          <IssueSeverityChart issues={report.issues} />
+        </div>
         <div className="space-y-2">
           {report.issues.map((issue) => (
             <div key={issue.id} className="rounded-2xl bg-black/20 p-4">
@@ -495,6 +512,55 @@ function ReportListCard({ title, items }: { title: string; items: string[] }) {
           <li key={line}>{line}</li>
         ))}
       </ul>
+    </div>
+  );
+}
+
+const ISSUE_SEVERITY_BARS = [
+  { key: "critical", label: "Critical", colorClass: "fill-destructive" },
+  { key: "high", label: "High", colorClass: "fill-secondary" },
+  { key: "medium", label: "Medium", colorClass: "fill-primary" },
+  { key: "low", label: "Low", colorClass: "fill-foreground/30" },
+] as const;
+
+/** Reuses SeverityPill's color mapping so the chart and the pills agree. */
+function IssueSeverityChart({ issues }: { issues: MarketingDiagnosisReport["issues"] }) {
+  const counts = ISSUE_SEVERITY_BARS.map((bar) => ({
+    label: bar.label,
+    value: issues.filter((issue) => issue.severity === bar.key).length,
+    colorClass: bar.colorClass,
+  }));
+  const hasData = counts.some((row) => row.value > 0);
+  if (!hasData) return null;
+
+  return (
+    <div className="rounded-2xl bg-black/20 p-4">
+      <div className="mb-2 text-xs text-foreground/40">Issue severity breakdown</div>
+      <ResponsiveContainer width="100%" height={120}>
+        <BarChart data={counts} margin={{ top: 4, right: 4, bottom: 0, left: -24 }}>
+          <XAxis
+            dataKey="label"
+            axisLine={false}
+            tickLine={false}
+            tick={{ fill: "currentColor", fontSize: 11, opacity: 0.5 }}
+          />
+          <YAxis hide allowDecimals={false} />
+          <Tooltip
+            cursor={{ fill: "currentColor", opacity: 0.06 }}
+            contentStyle={{
+              background: "var(--card)",
+              border: "1px solid var(--border)",
+              borderRadius: 12,
+              fontSize: 12,
+            }}
+          />
+          <Bar dataKey="value" radius={[4, 4, 0, 0]} maxBarSize={28}>
+            {counts.map((row) => (
+              <Cell key={row.label} className={row.colorClass} />
+            ))}
+          </Bar>
+        </BarChart>
+      </ResponsiveContainer>
     </div>
   );
 }

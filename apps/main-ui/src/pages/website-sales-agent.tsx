@@ -31,6 +31,7 @@ import {
   Check,
 } from "lucide-react";
 import { useTheme } from "next-themes";
+import { Bar, BarChart, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import iconDark from "@assets/jaabili-icon-dark.png";
 import iconLight from "@assets/jaabili-icon-light.png";
 import { cn } from "@/lib/utils";
@@ -2790,6 +2791,9 @@ function InspectorDrawer({
             <Metric label="Grade A" value={analytics.gradeA} />
             <Metric label="Handoffs" value={analytics.handoffRequested} />
           </div>
+          <div className="mt-2">
+            <LeadGradeChart analytics={analytics} />
+          </div>
         </InspectorBlock>
       </aside>
     </>
@@ -3113,6 +3117,19 @@ export function DiagnosisResultsView({
         </div>
         <p className="mt-2 text-sm leading-6 text-foreground/80">{report.summary}</p>
       </div>
+
+      {report.pinpointedFindings.length > 0 && (
+        <section>
+          <h3 className="mb-2 text-sm font-semibold text-foreground/70">Specific findings</h3>
+          <div className="rounded-2xl bg-black/20 p-4">
+            <ul className="list-disc space-y-2 pl-4 text-xs leading-5 text-foreground/70">
+              {report.pinpointedFindings.map((finding) => (
+                <li key={finding}>{finding}</li>
+              ))}
+            </ul>
+          </div>
+        </section>
+      )}
 
       <section>
         <h3 className="mb-2 text-sm font-semibold text-foreground/70">
@@ -4493,6 +4510,64 @@ function Metric({ label, value }: { label: string; value: number }) {
     <div className="rounded-2xl bg-card p-4">
       <div className="text-2xl font-semibold">{value}</div>
       <div className="text-xs text-foreground/40">{label}</div>
+    </div>
+  );
+}
+
+/**
+ * Lead grade is effectively a status scale (A = good, D = critical), so it
+ * reuses the same status color mapping SeverityPill already established
+ * elsewhere in this file rather than inventing a new palette.
+ */
+const LEAD_GRADE_BARS = [
+  { key: "gradeA", label: "A", colorClass: "fill-primary" },
+  { key: "gradeB", label: "B", colorClass: "fill-secondary" },
+  { key: "gradeC", label: "C", colorClass: "fill-foreground/40" },
+  { key: "gradeD", label: "D", colorClass: "fill-destructive" },
+] as const;
+
+function LeadGradeChart({ analytics }: { analytics: AgentAnalytics }) {
+  const data = LEAD_GRADE_BARS.map((bar) => ({
+    label: bar.label,
+    value: analytics[bar.key],
+    colorClass: bar.colorClass,
+  }));
+  const hasData = data.some((row) => row.value > 0);
+
+  return (
+    <div className="rounded-2xl bg-card p-4">
+      <div className="mb-2 text-xs text-foreground/40">Lead grade distribution</div>
+      {!hasData ? (
+        <div className="py-6 text-center text-xs text-foreground/35">
+          No graded leads yet.
+        </div>
+      ) : (
+        <ResponsiveContainer width="100%" height={120}>
+          <BarChart data={data} margin={{ top: 4, right: 4, bottom: 0, left: -24 }}>
+            <XAxis
+              dataKey="label"
+              axisLine={false}
+              tickLine={false}
+              tick={{ fill: "currentColor", fontSize: 11, opacity: 0.5 }}
+            />
+            <YAxis hide allowDecimals={false} />
+            <Tooltip
+              cursor={{ fill: "currentColor", opacity: 0.06 }}
+              contentStyle={{
+                background: "var(--card)",
+                border: "1px solid var(--border)",
+                borderRadius: 12,
+                fontSize: 12,
+              }}
+            />
+            <Bar dataKey="value" radius={[4, 4, 0, 0]} maxBarSize={28}>
+              {data.map((row) => (
+                <Cell key={row.label} className={row.colorClass} />
+              ))}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      )}
     </div>
   );
 }

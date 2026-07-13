@@ -90,6 +90,7 @@ export interface MarketingDiagnosisReport {
     sourceCount: number;
   };
   issues: MarketingDiagnosisIssue[];
+  pinpointedFindings: string[];
   dataRequests: MarketingDataRequest[];
   solutionOptions: MarketingSolutionOption[];
   recommendedSolutionIds: string[];

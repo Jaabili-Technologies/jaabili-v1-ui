@@ -29,6 +29,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export async function createPineLabsCheckout(input: {
+  tenantId: string;
   planId: string;
   planName: string;
   amount: number;

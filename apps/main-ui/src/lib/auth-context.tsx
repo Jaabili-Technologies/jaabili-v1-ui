@@ -7,6 +7,11 @@ import {
 } from "react";
 
 const STORAGE_KEY = "jaabili_user";
+// Only ever set for Google sign-in — email/password users have no Google
+// access token and are simply never treated as admins, which is correct:
+// admin status is gated server-side by ADMIN_EMAILS against a verified
+// Google identity (see packages/agents/src/admin-auth.ts).
+const ADMIN_TOKEN_STORAGE_KEY = "jaabili_admin_token";
 
 const apiBase = (
   import.meta.env.VITE_API_BASE_URL ??
@@ -58,6 +63,20 @@ function writeUser(user: AuthUser | null) {
   }
 }
 
+export function getStoredAdminAccessToken(): string | null {
+  if (typeof window === "undefined") return null;
+  return window.localStorage.getItem(ADMIN_TOKEN_STORAGE_KEY);
+}
+
+function writeAdminAccessToken(token: string | null) {
+  if (typeof window === "undefined") return;
+  if (token) {
+    window.localStorage.setItem(ADMIN_TOKEN_STORAGE_KEY, token);
+  } else {
+    window.localStorage.removeItem(ADMIN_TOKEN_STORAGE_KEY);
+  }
+}
+
 function toAuthUser(data: AuthResponse): AuthUser {
   return {
     uid: data.uid,
@@ -94,6 +113,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signInWithGoogleAccessToken = async (accessToken: string): Promise<AuthUser> => {
     const authUser = await postAuth("verify", { accessToken });
     writeUser(authUser);
+    writeAdminAccessToken(accessToken);
     setUser(authUser);
     return authUser;
   };
@@ -118,6 +138,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = async () => {
     writeUser(null);
+    writeAdminAccessToken(null);
     setUser(null);
   };
 

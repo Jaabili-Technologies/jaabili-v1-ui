@@ -1,3 +1,5 @@
+import { getStoredAdminAccessToken } from "./auth-context";
+
 export type LeadTemperature = "hot" | "medium" | "low";
 export type LeadGrade = "A" | "B" | "C" | "D";
 export type ConversationStatus = "active" | "handoff_requested" | "resolved";
@@ -407,6 +409,7 @@ export interface WebsiteSalesDiagnosisReport {
     leadCount: number;
   };
   issues: WebsiteSalesDiagnosisIssue[];
+  pinpointedFindings: string[];
   dataRequests: WebsiteSalesDataRequest[];
   solutionOptions: WebsiteSalesSolutionOption[];
   recommendedSolutionIds: string[];
@@ -497,6 +500,18 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   }
 
   return data as T;
+}
+
+/** Attaches the stored Google admin token (see auth-context.tsx). Use only for Jaabili-internal admin operations (tenant create/subscription/widget-key rotate). */
+function adminRequest<T>(path: string, init?: RequestInit): Promise<T> {
+  const token = getStoredAdminAccessToken();
+  return request<T>(path, {
+    ...init,
+    headers: {
+      ...(init?.headers ?? {}),
+      ...(token ? { authorization: `Bearer ${token}` } : {}),
+    },
+  });
 }
 
 export function greetWebsiteSalesAgent(visitorId: string) {
@@ -683,14 +698,28 @@ export function createAgentTenant(input: {
   allowedWidgetOrigins?: string[] | null;
   activeAgentProfile?: string | null;
 }) {
-  return request<AgentTenant>("/agents/website-sales/tenants", {
+  return adminRequest<AgentTenant>("/agents/website-sales/tenants", {
     method: "POST",
     body: JSON.stringify(input),
   });
 }
 
+export function updateAgentTenantSubscription(
+  tenantId: string,
+  plan: "free" | "basic" | "pro" | "enterprise",
+  status = "active",
+) {
+  return adminRequest<AgentTenant>(
+    `/agents/website-sales/tenants/${encodeURIComponent(tenantId)}/subscription`,
+    {
+      method: "POST",
+      body: JSON.stringify({ plan, status }),
+    },
+  );
+}
+
 export function rotateAgentTenantWidgetKey(tenantId: string) {
-  return request<AgentTenant>(
+  return adminRequest<AgentTenant>(
     `/agents/website-sales/tenants/${encodeURIComponent(tenantId)}/widget-key/rotate`,
     {
       method: "POST",

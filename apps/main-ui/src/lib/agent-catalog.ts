@@ -45,7 +45,7 @@ export const AGENT_CATALOG: ProductAgent[] = [
   },
   {
     id: "marketing",
-    name: "Marketing Agent",
+    name: "Atlas",
     category: "Marketing",
     description: "Diagnoses marketing gaps and plans campaigns, content, and SEO for your approval.",
     status: "setup",
