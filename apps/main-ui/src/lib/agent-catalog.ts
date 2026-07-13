@@ -21,7 +21,7 @@ export interface ProductAgent {
   icon: ComponentType<{ className?: string }>;
   tint: string;
   /** Which inline workspace panel the unified dashboard shell should render for this agent, if any. */
-  panel: "website-sales" | "marketing" | null;
+  panel: "website-sales" | "marketing" | "whatsapp" | null;
 }
 
 export const PLAN_LIMITS = {
@@ -61,11 +61,11 @@ export const AGENT_CATALOG: ProductAgent[] = [
     category: "Messaging",
     description: "Continues sales conversations and follow-ups on WhatsApp.",
     status: "setup",
-    href: "/contact",
+    href: "/dashboard/agents/whatsapp",
     plan: "basic",
     icon: MessagingAgentIcon,
     tint: "bg-emerald-500/12 text-emerald-500",
-    panel: null,
+    panel: "whatsapp",
   },
   {
     id: "follow-up",

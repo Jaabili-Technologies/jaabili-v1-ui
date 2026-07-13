@@ -23,6 +23,7 @@ import { readOnboarding } from "@/lib/onboarding";
 import { AGENT_CATALOG, PLAN_LIMITS, type ProductAgent } from "@/lib/agent-catalog";
 import { getNovaAgentStatus, NovaWorkspacePanel } from "@/components/agents/NovaWorkspacePanel";
 import { getMarketingAgentStatus, MarketingWorkspacePanel } from "@/pages/marketing-agent";
+import { WhatsAppWorkspacePanel } from "@/pages/whatsapp-agent";
 import { listAgentTenants, type AgentTenant } from "@/lib/website-sales-agent-api";
 
 // Shared across every agent page: one "current client" concept for the
@@ -297,6 +298,13 @@ export default function Dashboard() {
             )}
             {activeAgent?.panel === "marketing" && (
               <MarketingWorkspacePanel tenantId={selectedTenantId} />
+            )}
+            {activeAgent?.panel === "whatsapp" && (
+              <WhatsAppWorkspacePanel
+                tenantId={selectedTenantId}
+                tenant={tenants.find((tenant) => tenant.id === selectedTenantId) ?? null}
+                onTenantUpdated={setTenants}
+              />
             )}
           </section>
         )}

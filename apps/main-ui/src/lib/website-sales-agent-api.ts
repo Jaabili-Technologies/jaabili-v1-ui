@@ -71,6 +71,7 @@ export interface ConversationRecord {
   labels: string[];
   messages: ConversationMessage[];
   leadId: string | null;
+  channel: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -179,6 +180,9 @@ export interface AgentTenant {
   widgetPublicKey: string | null;
   allowedWidgetOrigins: string[];
   activeAgentProfile: string;
+  subscriptionPlan: "free" | "basic" | "pro" | "enterprise";
+  subscriptionStatus: string;
+  whatsappPhoneNumberId: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -723,6 +727,16 @@ export function rotateAgentTenantWidgetKey(tenantId: string) {
     `/agents/website-sales/tenants/${encodeURIComponent(tenantId)}/widget-key/rotate`,
     {
       method: "POST",
+    },
+  );
+}
+
+export function connectAgentTenantWhatsApp(tenantId: string, whatsappPhoneNumberId: string) {
+  return adminRequest<AgentTenant>(
+    `/agents/whatsapp/tenants/${encodeURIComponent(tenantId)}/connect`,
+    {
+      method: "POST",
+      body: JSON.stringify({ whatsappPhoneNumberId }),
     },
   );
 }
