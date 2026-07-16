@@ -449,6 +449,7 @@ function MarketingResultsView({
           <h3 className="text-sm font-semibold text-foreground/70">What the agent will do once approved</h3>
           <ReportListCard title="Marketing thesis" items={activationPlan.report.marketingThesis} />
           <ReportListCard title="Content calendar" items={activationPlan.report.contentCalendar} />
+          <ContentDraftsCard items={activationPlan.report.contentDraftSamples} />
           <ReportListCard title="Campaign plan" items={activationPlan.report.campaignPlan} />
           <ReportListCard title="Human approval rules" items={activationPlan.report.humanApprovalRules} />
           <div className="rounded-2xl bg-black/20 p-4 text-xs leading-6 text-foreground/60">
@@ -496,6 +497,31 @@ function MarketingResultsView({
         >
           Restart marketing diagnosis
         </button>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Content draft samples are actual drafted copy (2-3 sentences each, from
+ * content-generator.ts), not short bullet fragments like the other report
+ * sections -- they get their own card with room to read each draft, rather
+ * than being truncated to 4 lines inside ReportListCard's bullet list.
+ */
+function ContentDraftsCard({ items }: { items: string[] }) {
+  if (items.length === 0) return null;
+
+  return (
+    <div className="rounded-2xl bg-black/20 p-4">
+      <div className="mb-3 text-[11px] uppercase tracking-[0.14em] text-foreground/35">
+        Draft content samples -- pending your approval
+      </div>
+      <div className="space-y-2">
+        {items.map((draft) => (
+          <div key={draft} className="rounded-xl border border-border/60 bg-black/20 p-3 text-xs leading-6 text-foreground/70">
+            {draft}
+          </div>
+        ))}
       </div>
     </div>
   );

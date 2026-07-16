@@ -1721,8 +1721,12 @@ function ConversationState({
           ))}
           {isSending && (
             <div className="flex items-center gap-3 text-foreground/45">
-              <NovaAgentIcon className="size-5 text-primary" />
-              <ThinkingDots />
+              <img
+                src="/illustrations/nova-analyzing.png"
+                alt=""
+                className="size-8 shrink-0 animate-pulse rounded-full object-cover"
+              />
+              <AnalyzingStatus />
             </div>
           )}
           <div ref={messagesEndRef} />
@@ -2227,6 +2231,42 @@ function ThinkingDots() {
           style={{ animationDelay: `${item * 140}ms` }}
         />
       ))}
+    </div>
+  );
+}
+
+// A bare pulsing dot reads as "frozen" past ~5-8 seconds -- and a real nova
+// reply on modest hardware currently takes 15-25s. Cycling through the
+// actual pipeline stages (matching -> classifying -> drafting) keeps the
+// wait legible instead of ambiguous, without claiming a false progress bar
+// (there's no reliable percent-complete signal to show).
+const ANALYZING_STAGES = [
+  "Reading the message...",
+  "Matching your knowledge base...",
+  "Checking playbook rules...",
+  "Drafting a grounded reply...",
+] as const;
+
+function AnalyzingStatus() {
+  const [stageIndex, setStageIndex] = useState(0);
+
+  useEffect(() => {
+    setStageIndex(0);
+    const interval = window.setInterval(() => {
+      setStageIndex((current) => Math.min(current + 1, ANALYZING_STAGES.length - 1));
+    }, 3200);
+    return () => window.clearInterval(interval);
+  }, []);
+
+  return (
+    <div className="flex items-center gap-2">
+      <ThinkingDots />
+      <span
+        key={stageIndex}
+        className="jaabili-analyzing-stage text-xs text-foreground/45"
+      >
+        {ANALYZING_STAGES[stageIndex]}
+      </span>
     </div>
   );
 }

@@ -19,7 +19,7 @@ export function NovaAgentIcon({ className }: IconProps) {
   );
 }
 
-/** WhatsApp Sales Agent — a chat bubble carrying message lines, for continued conversations. */
+/** Relay — WhatsApp Sales Agent. A chat bubble carrying message lines, for continued conversations. */
 export function MessagingAgentIcon({ className }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" fill="none" className={className} xmlns="http://www.w3.org/2000/svg">
@@ -34,7 +34,7 @@ export function MessagingAgentIcon({ className }: IconProps) {
   );
 }
 
-/** Lead Follow-Up Agent — a recurring loop with a target dot, for nurture cadence. */
+/** Pulse — Lead Follow-Up Agent. A recurring loop with a target dot, for nurture cadence. */
 export function FollowUpAgentIcon({ className }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" fill="none" className={className} xmlns="http://www.w3.org/2000/svg">
@@ -56,7 +56,7 @@ export function FollowUpAgentIcon({ className }: IconProps) {
   );
 }
 
-/** Customer Support Agent — a shield with a checkmark, for safe, resolved support. */
+/** Sage — Customer Support Agent. A shield with a checkmark, for safe, resolved support. */
 export function SupportAgentIcon({ className }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" fill="none" className={className} xmlns="http://www.w3.org/2000/svg">
@@ -92,7 +92,7 @@ export function MarketingAgentIcon({ className }: IconProps) {
   );
 }
 
-/** Operations Summary Agent — a bar-chart pulse, for daily activity summaries. */
+/** Compass — Operations Summary Agent. A bar-chart pulse, for daily activity summaries. */
 export function OpsSummaryAgentIcon({ className }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" fill="none" className={className} xmlns="http://www.w3.org/2000/svg">
@@ -103,6 +103,21 @@ export function OpsSummaryAgentIcon({ className }: IconProps) {
         strokeLinecap="round"
       />
       <path d="M4 19h16" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" opacity="0.4" />
+    </svg>
+  );
+}
+
+/** Muse — Content Studio Agent. A four-point sparkle, for generated creative assets. */
+export function ContentStudioAgentIcon({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} xmlns="http://www.w3.org/2000/svg">
+      <path
+        d="M12 3l1.7 5.3L19 10l-5.3 1.7L12 17l-1.7-5.3L5 10l5.3-1.7L12 3Z"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinejoin="round"
+      />
+      <path d="M18.5 15.5l.7 2.1 2.1.7-2.1.7-.7 2.1-.7-2.1-2.1-.7 2.1-.7.7-2.1Z" fill="currentColor" opacity="0.6" />
     </svg>
   );
 }

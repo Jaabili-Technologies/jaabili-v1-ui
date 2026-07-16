@@ -114,6 +114,7 @@ export interface MarketingActivationReport {
   marketingThesis: string[];
   requiredDataGaps: string[];
   contentCalendar: string[];
+  contentDraftSamples: string[];
   campaignPlan: string[];
   seoChecklist: string[];
   socialMediaPlan: string[];

@@ -416,13 +416,12 @@ function AgentCard({
   onOpenPanel?: () => void;
 }) {
   const locked = agent.status === "locked";
-  const Icon = agent.icon;
 
   return (
     <div className="flex w-full max-w-xs flex-col gap-3 rounded-xl border border-border p-4">
       <div className="flex items-center gap-2.5">
-        <div className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-lg", agent.tint)}>
-          <Icon className="h-4 w-4" />
+        <div className={cn("flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg", agent.tint)}>
+          <img src={agent.illustrationSrc} alt="" className="h-full w-full object-cover" />
         </div>
         <div className="min-w-0">
           <div className="truncate text-sm font-semibold">{agent.name}</div>
