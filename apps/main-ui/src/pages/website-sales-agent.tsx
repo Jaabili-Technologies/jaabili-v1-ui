@@ -3908,7 +3908,7 @@ function CompanyOnboardingDrawer({
         <div className="border-t border-border p-5">
           {activationPlan?.consentApproved ? (
             <div className="flex items-center gap-3 rounded-2xl bg-primary/10 px-4 py-3 text-sm text-primary">
-              <Check className="size-5" />
+              <img src="/illustrations/success-burst.png" alt="" className="size-8 shrink-0 object-contain" />
               Launch approved. The agent can now operate from approved sources.
             </div>
           ) : activationPlan ? (
