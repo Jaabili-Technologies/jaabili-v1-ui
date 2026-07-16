@@ -25,6 +25,7 @@ import { getNovaAgentStatus, NovaWorkspacePanel } from "@/components/agents/Nova
 import { getMarketingAgentStatus, MarketingWorkspacePanel } from "@/pages/marketing-agent";
 import { WhatsAppWorkspacePanel } from "@/pages/whatsapp-agent";
 import { listAgentTenants, type AgentTenant } from "@/lib/website-sales-agent-api";
+import { SettingsPanel } from "@/components/settings/SettingsPanel";
 
 // Shared across every agent page: one "current client" concept for the
 // whole workspace, not a per-agent selection.
@@ -36,7 +37,6 @@ const comingSoonNavItems = [
   { icon: BarChart3, label: "Analytics" },
   { icon: FileText, label: "Knowledge Base" },
   { icon: Workflow, label: "Integrations" },
-  { icon: Settings, label: "Settings" },
 ];
 
 type AgentRailStatus = { percent: number; isLive: boolean };
@@ -133,6 +133,19 @@ export default function Dashboard() {
             <Home className="h-4 w-4" />
             Home
           </button>
+          <button
+            type="button"
+            onClick={() => setActiveView("settings")}
+            className={cn(
+              "flex h-9 w-full items-center gap-2.5 rounded-lg px-2.5 text-sm transition-colors",
+              activeView === "settings"
+                ? "bg-muted font-medium text-foreground"
+                : "text-muted-foreground hover:bg-muted hover:text-foreground",
+            )}
+          >
+            <Settings className="h-4 w-4" />
+            Settings
+          </button>
 
           <div className="mt-5 mb-1.5 px-2.5 text-xs font-medium text-muted-foreground/70">
             My agents
@@ -205,17 +218,19 @@ export default function Dashboard() {
       <main className="flex min-w-0 flex-1 flex-col">
         <header className="flex h-16 shrink-0 items-center justify-between gap-4 border-b border-border px-5 sm:px-8">
           <h1 className="shrink-0 text-sm font-medium text-foreground/80">
-            {activeView === "home" ? "Home" : activeAgent?.name ?? "Home"}
+            {activeView === "home" ? "Home" : activeView === "settings" ? "Settings" : activeAgent?.name ?? "Home"}
           </h1>
-          {activeView === "home" ? (
+          {activeView === "home" || activeView === "settings" ? (
             <div className="hidden min-w-0 flex-1 justify-center lg:flex">
-              <div className="flex h-9 w-full max-w-md items-center gap-2 rounded-lg border border-border bg-muted/60 px-3">
-                <Search className="h-3.5 w-3.5 text-muted-foreground" />
-                <input
-                  className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
-                  placeholder="Search"
-                />
-              </div>
+              {activeView === "home" && (
+                <div className="flex h-9 w-full max-w-md items-center gap-2 rounded-lg border border-border bg-muted/60 px-3">
+                  <Search className="h-3.5 w-3.5 text-muted-foreground" />
+                  <input
+                    className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+                    placeholder="Search"
+                  />
+                </div>
+              )}
             </div>
           ) : (
             <TenantSwitcher
@@ -290,6 +305,10 @@ export default function Dashboard() {
                 </div>
               </div>
             </div>
+          </section>
+        ) : activeView === "settings" ? (
+          <section className="min-h-0 flex-1 overflow-y-auto px-4 py-8">
+            <SettingsPanel />
           </section>
         ) : (
           <section className="min-h-0 flex-1 overflow-y-auto px-4 py-8">

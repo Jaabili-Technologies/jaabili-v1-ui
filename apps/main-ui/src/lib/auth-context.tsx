@@ -39,6 +39,8 @@ interface AuthContextValue {
   signInWithEmail: (email: string, password: string) => Promise<AuthUser>;
   signUpWithEmail: (name: string, email: string, password: string) => Promise<AuthUser>;
   signOut: () => Promise<void>;
+  changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
+  deleteAccount: (password: string) => Promise<void>;
 }
 
 interface AuthResponse {
@@ -171,6 +173,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   };
 
+  const authedRequest = async (path: string, body: Record<string, unknown>): Promise<void> => {
+    const sessionToken = getStoredSessionToken();
+    const res = await fetch(`${apiBase}/api/auth/me/${path}`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        ...(sessionToken ? { authorization: `Bearer ${sessionToken}` } : {}),
+      },
+      body: JSON.stringify(body),
+    });
+    const data = (await res.json().catch(() => null)) as { ok?: boolean; error?: string } | null;
+    if (!res.ok || !data?.ok) {
+      throw new Error(data?.error ?? "Request failed.");
+    }
+  };
+
+  const changePassword = (currentPassword: string, newPassword: string) =>
+    authedRequest("change-password", { currentPassword, newPassword });
+
+  const deleteAccount = async (password: string) => {
+    await authedRequest("delete-account", { password });
+    await signOut();
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -180,6 +206,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signInWithEmail,
         signUpWithEmail,
         signOut,
+        changePassword,
+        deleteAccount,
       }}
     >
       {children}
