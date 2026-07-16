@@ -5,6 +5,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { hasCompletedOnboarding, saveOnboarding } from "./onboarding";
 
 const STORAGE_KEY = "jaabili_user";
 // Only ever set for Google sign-in — email/password users have no Google
@@ -126,6 +127,63 @@ async function postAuth(path: string, body: Record<string, unknown>): Promise<Au
   return data;
 }
 
+interface WorkspaceSummary {
+  tenantId: string;
+  name: string;
+  role: string;
+}
+
+// Onboarding completion is a pure browser-localStorage flag (see
+// onboarding.ts), never persisted server-side -- so any account whose
+// workspace was provisioned directly (an admin-seeded test tenant, a
+// teammate added to an existing workspace) shows the onboarding wizard on
+// every first login on a new browser, even though the workspace already
+// has real data. This checks whether the signed-in user's workspace
+// already has FAQs on file and, if so, marks onboarding complete
+// automatically instead of forcing them through a wizard for data that
+// already exists.
+async function autoSkipOnboardingIfWorkspaceHasData(uid: string, sessionToken: string | null): Promise<void> {
+  if (!sessionToken || hasCompletedOnboarding(uid)) return;
+
+  try {
+    const workspacesRes = await fetch(`${apiBase}/api/auth/me/workspaces`, {
+      headers: { authorization: `Bearer ${sessionToken}` },
+    });
+    if (!workspacesRes.ok) return;
+    const workspaces = (await workspacesRes.json()) as WorkspaceSummary[];
+    if (workspaces.length === 0) return;
+
+    // /auth/register and /auth/login auto-provision a blank workspace for
+    // any user with zero memberships at that moment -- an account linked
+    // to a real, already-populated tenant AFTER registration ends up with
+    // both that blank one and the real one. Pick the first workspace that
+    // actually has FAQ data on file, not just the first in the list.
+    for (const workspace of workspaces) {
+      const faqsRes = await fetch(
+        `${apiBase}/api/agents/website-sales/faqs?tenantId=${encodeURIComponent(workspace.tenantId)}`,
+      );
+      if (!faqsRes.ok) continue;
+      const faqs = (await faqsRes.json()) as unknown[];
+      if (faqs.length === 0) continue;
+
+      saveOnboarding(uid, {
+        role: "owner",
+        useCase: "sales",
+        teamSize: "unspecified",
+        source: "existing-workspace",
+        channels: ["website"],
+        selectedAgents: ["website-sales"],
+        companyName: workspace.name,
+        tenantId: workspace.tenantId,
+      });
+      return;
+    }
+  } catch {
+    // Best-effort -- if this fails, the user still sees onboarding, which
+    // is the safe (if annoying) fallback, not a broken app.
+  }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(() => readUser());
   const [loading, setLoading] = useState(false);
@@ -140,6 +198,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     writeUser(authUser);
     writeAdminAccessToken(accessToken);
     writeSessionToken(data.sessionToken ?? null);
+    await autoSkipOnboardingIfWorkspaceHasData(authUser.uid, data.sessionToken ?? null);
     setUser(authUser);
     return authUser;
   };
@@ -149,6 +208,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const authUser = toAuthUser(data);
     writeUser(authUser);
     writeSessionToken(data.sessionToken ?? null);
+    await autoSkipOnboardingIfWorkspaceHasData(authUser.uid, data.sessionToken ?? null);
     setUser(authUser);
     return authUser;
   };
