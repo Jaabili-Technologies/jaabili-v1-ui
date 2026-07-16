@@ -1,4 +1,4 @@
-import { getStoredAdminAccessToken } from "./auth-context";
+import { getStoredAdminAccessToken, getStoredSessionToken } from "./auth-context";
 
 export type LeadTemperature = "hot" | "medium" | "low";
 export type LeadGrade = "A" | "B" | "C" | "D";
@@ -482,10 +482,16 @@ const apiBase = (
 export const websiteSalesApiBase = apiBase;
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  // Attached whenever a logged-in user's session exists -- required for
+  // tenant-scoped dashboard routes (leads, reports, tickets) now gated by
+  // requireWorkspaceAccess server-side. Harmless on public/unauthenticated
+  // routes (greet, chat, FAQ reads), which never checked this header.
+  const sessionToken = getStoredSessionToken();
   const response = await fetch(`${apiBase}/api${path}`, {
     ...init,
     headers: {
       "content-type": "application/json",
+      ...(sessionToken ? { authorization: `Bearer ${sessionToken}` } : {}),
       ...(init?.headers ?? {}),
     },
   });
