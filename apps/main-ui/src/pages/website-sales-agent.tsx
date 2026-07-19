@@ -11,15 +11,16 @@ import {
   ChevronDown,
   CircleDollarSign,
   Clock3,
+  FileText,
   History,
   LayoutGrid,
   Loader2,
   Menu,
   MessageSquare,
-  Mic,
   PanelLeftClose,
   PanelLeftOpen,
   PanelRight,
+  Pencil,
   Plus,
   Search,
   Send,
@@ -31,12 +32,16 @@ import {
   Check,
 } from "lucide-react";
 import { useTheme } from "next-themes";
+import { AnimatePresence, motion } from "framer-motion";
 import { Bar, BarChart, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import iconDark from "@assets/jaabili-icon-dark.png";
 import iconLight from "@assets/jaabili-icon-light.png";
 import { cn } from "@/lib/utils";
 import { BrandPreloader } from "@/components/ui/brand-loader";
 import { NovaAgentIcon } from "@/components/ui/agent-icons";
+import { useAuth } from "@/lib/auth-context";
+import { readOnboarding } from "@/lib/onboarding";
+import { AGENT_CATALOG } from "@/lib/agent-catalog";
 import {
   agentOptions,
   labelOptions,
@@ -59,7 +64,7 @@ import {
   getWebsiteSalesAgentSettings,
   getWebsiteSalesAgentStatus,
   getWebsiteSalesConversationAudit,
-  listAgentTenants,
+  listMyWorkspaces,
   listWebsiteSalesTrainingExamples,
   listWebsiteSalesAgentConversations,
   listWebsiteSalesAgentLeads,
@@ -72,6 +77,7 @@ import {
   updateWebsiteSalesConversationLabels,
   updateWebsiteSalesAgentSettings,
   websiteSalesApiBase,
+  UnauthorizedError,
   type AgentAnalytics,
   type AgentReadinessReport,
   type AgentReply,
@@ -178,7 +184,6 @@ export default function WebsiteSalesAgentPage() {
   const [activationPlans, setActivationPlans] = useState<WebsiteSalesActivationPlan[]>([]);
   const [isActivationWorking, setIsActivationWorking] = useState(false);
   const [selectedModel, setSelectedModel] = useState("jaabilv-2.0");
-  const [selectedAgent, setSelectedAgent] = useState(agentOptions[0]);
   const [message, setMessage] = useState("");
   const [notificationEmail, setNotificationEmail] = useState("");
   const [notificationWhatsappPhone, setNotificationWhatsappPhone] = useState("");
@@ -194,6 +199,7 @@ export default function WebsiteSalesAgentPage() {
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
   const [isSimulatorOpen, setIsSimulatorOpen] = useState(false);
   const [isModelSettingsOpen, setIsModelSettingsOpen] = useState(false);
+  const [sessionExpired, setSessionExpired] = useState(false);
   const [companyDraft, setCompanyDraft] = useState<CompanyOnboardingDraft>(
     createCompanyDraft(),
   );
@@ -212,7 +218,6 @@ export default function WebsiteSalesAgentPage() {
   const visibleMessages = hasVisitorMessage ? messages : [];
   const conversationLead =
     lead ?? leads.find((item) => item.conversationId === conversation?.id) ?? null;
-  const activeProvider = status?.intelligence.activeProvider ?? "loading";
   const selectedTenant =
     tenants.find((tenant) => tenant.id === selectedTenantId) ?? tenants[0] ?? null;
   const selectedActivationPlan =
@@ -247,6 +252,30 @@ export default function WebsiteSalesAgentPage() {
   }, [history, searchQuery]);
 
   const refreshOperationalData = useCallback(async () => {
+    // Real, live-verified bug: selectedTenantId starts on a placeholder
+    // ("jaabili-default") until the workspaces call resolves and corrects
+    // it. Firing every tenant-scoped call in the same batch as the
+    // workspaces call meant they all used the STALE placeholder every
+    // single time -- the correction landed in React state, but nothing
+    // re-ran the rest of this batch with it (confirmed via request
+    // tracing: workspaces returned the real tenant correctly on every
+    // call, yet diagnosis/operations/etc. kept querying "jaabili-default"
+    // forever). Resolving the real tenant id FIRST, synchronously, and
+    // using that value -- not the possibly-stale React state -- for every
+    // other call in this batch closes the race at its root instead of
+    // depending on a re-render to retry.
+    const myWorkspaces = await listMyWorkspaces().catch(() => null);
+    let effectiveTenantId = selectedTenantId;
+    if (myWorkspaces) {
+      setTenants(myWorkspaces);
+      effectiveTenantId = myWorkspaces.some((tenant) => tenant.id === selectedTenantId)
+        ? selectedTenantId
+        : myWorkspaces[0]?.id ?? selectedTenantId;
+      if (effectiveTenantId !== selectedTenantId) {
+        setSelectedTenantId(effectiveTenantId);
+      }
+    }
+
     const [
       nextAnalytics,
       nextOperations,
@@ -255,27 +284,25 @@ export default function WebsiteSalesAgentPage() {
       nextHistory,
       nextLeads,
       nextStatus,
-      nextTenants,
       nextTenantSources,
       nextTrainingExamples,
       nextActivationPlans,
     ] =
       await Promise.allSettled([
-        getWebsiteSalesAgentAnalytics(selectedTenantId),
-        getWebsiteSalesOperationsReport(selectedTenantId),
+        getWebsiteSalesAgentAnalytics(effectiveTenantId),
+        getWebsiteSalesOperationsReport(effectiveTenantId),
         getWebsiteSalesDiagnosisReport({
-          tenantId: selectedTenantId,
+          tenantId: effectiveTenantId,
           selectedSolutionIds: selectedDiagnosisSolutionIds,
           skippedDataRequestIds: skippedDiagnosisDataIds,
         }),
-        getWebsiteSalesLearningReport(selectedTenantId),
-        listWebsiteSalesAgentConversations(selectedTenantId),
-        listWebsiteSalesAgentLeads(selectedTenantId),
+        getWebsiteSalesLearningReport(effectiveTenantId),
+        listWebsiteSalesAgentConversations(effectiveTenantId),
+        listWebsiteSalesAgentLeads(effectiveTenantId),
         getWebsiteSalesAgentStatus(),
-        listAgentTenants(),
         listTenantKnowledgeSources(),
         listWebsiteSalesTrainingExamples(true),
-        listWebsiteSalesActivationPlans(selectedTenantId),
+        listWebsiteSalesActivationPlans(effectiveTenantId),
       ]);
 
     if (nextAnalytics.status === "fulfilled") setAnalytics(nextAnalytics.value);
@@ -300,14 +327,6 @@ export default function WebsiteSalesAgentPage() {
     }
     if (nextLeads.status === "fulfilled") setLeads(nextLeads.value);
     if (nextStatus.status === "fulfilled") setStatus(nextStatus.value);
-    if (nextTenants.status === "fulfilled") {
-      setTenants(nextTenants.value);
-      setSelectedTenantId((current) =>
-        nextTenants.value.some((tenant) => tenant.id === current)
-          ? current
-          : nextTenants.value[0]?.id ?? "jaabili-default",
-      );
-    }
     if (nextTenantSources.status === "fulfilled") {
       setTenantSources(nextTenantSources.value);
     }
@@ -316,6 +335,19 @@ export default function WebsiteSalesAgentPage() {
     }
     if (nextActivationPlans.status === "fulfilled") {
       setActivationPlans(nextActivationPlans.value);
+    }
+
+    // Every one of these calls used to fail silently on an expired/missing
+    // session -- the panel just sat on "Loading diagnosis..." forever with
+    // no indication anything was wrong. One 401 anywhere in this batch now
+    // surfaces a real, unmissable "please sign in again" state instead.
+    const results = [
+      nextAnalytics, nextOperations, nextDiagnosis, nextLearning, nextHistory,
+      nextLeads, nextStatus, nextTenantSources, nextTrainingExamples,
+      nextActivationPlans,
+    ];
+    if (results.some((r) => r.status === "rejected" && r.reason instanceof UnauthorizedError)) {
+      setSessionExpired(true);
     }
   }, [selectedTenantId, selectedDiagnosisSolutionIds, skippedDiagnosisDataIds]);
 
@@ -386,6 +418,18 @@ export default function WebsiteSalesAgentPage() {
   }, [selectedTenantId]);
 
   useEffect(() => {
+    // Nova's own diagnosis wizard already asked for most of what this form
+    // covers (primary offer, target customers, sales goal, handoff rules,
+    // objections...) conversationally. Re-showing all of that blank here
+    // made the client retype answers Nova already has -- pull each
+    // wizard answer into its matching field instead, so "Edit profile"
+    // shows what Nova knows rather than an empty form pretending it
+    // doesn't.
+    const wizardAnswer = (dataRequestId: string): string | undefined =>
+      diagnosisReport?.wizard.turnHistory.find(
+        (turn) => turn.role === "owner" && turn.dataRequestId === dataRequestId,
+      )?.content;
+
     setCompanyDraft((current) =>
       createCompanyDraft({
         ...current,
@@ -394,12 +438,21 @@ export default function WebsiteSalesAgentPage() {
         industry: selectedTenant?.industry ?? current.industry,
         contactEmail: selectedTenant?.contactEmail ?? current.contactEmail,
         contactPhone: selectedTenant?.contactPhone ?? current.contactPhone,
+        primaryOffer: wizardAnswer("primary-offer") ?? current.primaryOffer,
+        targetCustomers: wizardAnswer("target-customers") ?? current.targetCustomers,
+        salesGoal: wizardAnswer("sales-goal") ?? current.salesGoal,
+        handoffRules: wizardAnswer("handoff-channels") ?? current.handoffRules,
+        commonObjections: wizardAnswer("faq-objections") ?? current.commonObjections,
+        qualificationRules: wizardAnswer("policies-escalation") ?? current.qualificationRules,
+        averageOrderValue: wizardAnswer("pricing-boundaries") ?? current.averageOrderValue,
+        promoAssets: wizardAnswer("promo-assets") ?? current.promoAssets,
       }),
     );
   }, [
     selectedTenant?.name,
     selectedTenant?.websiteUrl,
     selectedTenant?.industry,
+    diagnosisReport,
     selectedTenant?.contactEmail,
     selectedTenant?.contactPhone,
   ]);
@@ -439,7 +492,22 @@ export default function WebsiteSalesAgentPage() {
     return () => {
       active = false;
     };
-  }, [refreshOperationalData]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Real bug found via live testing: selectedTenantId starts on a stale
+  // placeholder ("jaabili-default") until the workspaces call resolves and
+  // corrects it -- that correction happened, confirmed live (localStorage
+  // updated to the real tenant), but nothing then re-fetched diagnosis,
+  // operations, leads, etc. with the corrected id. The page was stuck on
+  // "Loading diagnosis..." forever for every fresh signup. Depending on the
+  // plain tenantId value directly (not the memoized callback identity) is
+  // the reliable trigger -- this fires every time the real tenant is known,
+  // including the correction.
+  useEffect(() => {
+    refreshOperationalData().catch(() => undefined);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedTenantId]);
 
   useEffect(() => {
     const saved = window.localStorage.getItem("jaabili-model-settings");
@@ -516,12 +584,17 @@ export default function WebsiteSalesAgentPage() {
     }
   };
 
+  // Nova's own wizard (always on the main page) already asks for company
+  // details one question at a time and ends in its own approve-launch step
+  // -- this used to also pop open a giant static "fill everything in now"
+  // form drawer, duplicating that flow and frustrating clients who had to
+  // fill the same fields twice. Setup now just resets to a fresh
+  // conversation with the wizard, which is where the real intake happens.
   const startCompanySetup = async () => {
     setError(null);
     setMessage("");
     setConversation(null);
     setLead(null);
-    setIsOnboardingOpen(true);
     setIsSidebarOpen(false);
   };
 
@@ -629,7 +702,7 @@ export default function WebsiteSalesAgentPage() {
 
   const saveOnboardingCompany = async () => {
     const cleanName =
-      companyDraft.companyName.trim() || selectedTenant?.name || "Client company";
+      companyDraft.companyName.trim() || selectedTenant?.name || "Your business";
     return createTenant({
       id:
         selectedTenant && selectedTenant.id !== "jaabili-default"
@@ -650,7 +723,7 @@ export default function WebsiteSalesAgentPage() {
       const plan = await analyzeWebsiteSalesActivation({
         tenantId: selectedTenantId,
         companyProfile: profileOverride ?? {
-          companyName: selectedTenant?.name ?? "Client company",
+          companyName: selectedTenant?.name ?? "Your business",
           websiteUrl: selectedTenant?.websiteUrl ?? undefined,
           industry: selectedTenant?.industry ?? undefined,
           targetCustomers: "Website visitors and high-intent inbound buyers",
@@ -712,6 +785,25 @@ export default function WebsiteSalesAgentPage() {
     );
   };
 
+  if (sessionExpired) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-background p-6 text-foreground">
+        <div className="w-full max-w-sm rounded-2xl border border-border bg-card p-6 text-center shadow-xl">
+          <div className="text-base font-semibold">Your session has expired</div>
+          <p className="mt-2 text-sm leading-6 text-foreground/55">
+            Sign in again to keep working with Nova -- nothing you've set up has been lost.
+          </p>
+          <Link
+            href="/get-started"
+            className="mt-5 inline-flex h-10 w-full items-center justify-center rounded-full bg-foreground text-sm font-medium text-background hover:opacity-90"
+          >
+            Sign in again
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="h-screen overflow-hidden bg-background text-foreground">
       <BrandPreloader show={isBooting} />
@@ -750,9 +842,6 @@ export default function WebsiteSalesAgentPage() {
         <main className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_48%,rgba(28,54,145,0.28),transparent_32%),radial-gradient(circle_at_50%_55%,rgba(16,184,166,0.09),transparent_26%)]" />
       <TopBar
-            selectedAgent={selectedAgent ?? agentOptions[0]}
-            activeProvider={activeProvider}
-            onAgentChange={setSelectedAgent}
             onOpenSidebar={() => setIsSidebarOpen(true)}
             onOpenOnboarding={() => setIsOnboardingOpen(true)}
             onOpenInspector={() => setIsInspectorOpen(true)}
@@ -858,6 +947,7 @@ export default function WebsiteSalesAgentPage() {
           state={knowledgeDialog}
           onClose={() => setKnowledgeDialog(null)}
           onSubmit={addKnowledgeSource}
+          onUploadFile={attachFile}
         />
       </div>
     </div>
@@ -877,6 +967,57 @@ type KnowledgeDialogState =
   | { type: "faq"; title: string; category: string }
   | { type: "pricing"; title: string; category: string }
   | { type: "policy"; title: string; category: string };
+
+// This page used to be a Nova-only silo with no way to reach another agent
+// short of leaving to /dashboard -- one workspace, multiple agents, so the
+// switcher belongs here too, not just on the dashboard shell.
+function AgentSwitcher({ collapsed }: { collapsed: boolean }) {
+  const { user } = useAuth();
+  const onboarding = readOnboarding(user?.uid);
+  const selectedIds = onboarding?.selectedAgents?.length
+    ? onboarding.selectedAgents
+    : ["website-sales"];
+  const agents = AGENT_CATALOG.filter((agent) => selectedIds.includes(agent.id));
+
+  return (
+    <div className="border-b border-border px-3 pb-3 pt-1">
+      <Link
+        href="/dashboard"
+        className="flex h-9 w-full items-center gap-2.5 rounded-lg px-2.5 text-xs font-medium text-foreground/50 hover:bg-foreground/8 hover:text-foreground"
+      >
+        <LayoutGrid className="size-3.5 shrink-0" />
+        {!collapsed && "Back to dashboard"}
+      </Link>
+      {!collapsed && (
+        <div className="mt-2 px-2.5 text-[11px] font-medium uppercase tracking-[0.14em] text-foreground/32">
+          My agents
+        </div>
+      )}
+      <div className="mt-1 space-y-1">
+        {agents.map((agent) => {
+          const Icon = agent.icon;
+          const isActive = agent.id === "website-sales";
+          return (
+            <Link
+              key={agent.id}
+              href={agent.href}
+              className={cn(
+                "flex h-10 w-full items-center gap-2.5 rounded-lg px-2.5 text-sm transition-colors",
+                collapsed && "justify-center",
+                isActive
+                  ? "bg-foreground/10 font-medium text-foreground"
+                  : "text-foreground/60 hover:bg-foreground/8 hover:text-foreground",
+              )}
+            >
+              <Icon className="size-4 shrink-0" />
+              {!collapsed && <span className="truncate">{agent.name}</span>}
+            </Link>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 function ChatSidebar({
   conversations,
@@ -933,9 +1074,9 @@ function ChatSidebar({
           <div className="flex items-center gap-3">
             <img src={icon} alt="Jaabili" className="h-8 w-8 object-contain" />
             {!isCollapsed && (
-              <span className="leading-tight">
-                <span className="block text-sm font-semibold">Nova</span>
-                <span className="block text-[11px] text-foreground/36">Website Sales Agent</span>
+              <span className="min-w-0 leading-tight">
+                <span className="block truncate text-sm font-semibold">{workspaceName}</span>
+                <span className="block text-[11px] text-foreground/36">Nova · Website Sales Agent</span>
               </span>
             )}
           </div>
@@ -955,15 +1096,17 @@ function ChatSidebar({
           </button>
         </div>
 
+        <AgentSwitcher collapsed={isCollapsed} />
+
         <nav className="space-y-1 px-3">
           {!isCollapsed && (
             <div className="px-3 pb-1 pt-2 text-[11px] font-medium uppercase tracking-[0.14em] text-foreground/32">
-              Agent workspace
+              Nova
             </div>
           )}
           <SidebarAction icon={Target} label="Start setup" active onClick={onNewChat} collapsed={isCollapsed} />
           <SidebarAction
-            icon={LayoutGrid}
+            icon={FileText}
             label={`Sources${tenantSourceCount ? ` (${tenantSourceCount})` : ""}`}
             onClick={onOpenLibrary}
             collapsed={isCollapsed}
@@ -1038,16 +1181,8 @@ function ChatSidebar({
           onClick={onOpenModelSettings}
           className={cn("flex h-16 items-center gap-3 border-t border-border px-3 text-left transition hover:bg-foreground/8", isCollapsed && "justify-center")}
         >
-          <img src={icon} alt={workspaceName} className="size-7 object-contain" />
-          {!isCollapsed && (
-            <>
-              <div className="min-w-0 flex-1">
-                <div className="truncate text-[13px] font-medium">{workspaceName}</div>
-                <div className="text-xs text-foreground/40">Model settings</div>
-              </div>
-              <Settings className="size-5 text-foreground/50" />
-            </>
-          )}
+          <Settings className="size-5 text-foreground/50" />
+          {!isCollapsed && <span className="text-[13px] font-medium">Agent settings</span>}
         </button>
       </aside>
     </>
@@ -1084,56 +1219,25 @@ function SidebarAction({
 }
 
 function TopBar({
-  selectedAgent,
-  activeProvider,
-  onAgentChange,
   onOpenSidebar,
   onOpenOnboarding,
   onOpenInspector,
 }: {
-  selectedAgent: string;
-  activeProvider: string;
-  onAgentChange: (value: string) => void;
   onOpenSidebar: () => void;
   onOpenOnboarding: () => void;
   onOpenInspector: () => void;
 }) {
   return (
     <header className="relative z-20 flex h-[3.25rem] items-center justify-between border-b border-border/[0.04] px-3 md:px-5">
-      <div className="flex items-center gap-3">
-        <Link
-          href="/dashboard"
-          className="hidden h-8 items-center gap-2 rounded-full border border-border bg-foreground/5 px-3 text-xs font-medium text-foreground/65 hover:bg-foreground/10 hover:text-foreground lg:inline-flex"
-        >
-          <LayoutGrid className="size-4" />
-          Dashboard
-        </Link>
-        <button
-          type="button"
-          onClick={onOpenSidebar}
-          className="inline-flex size-9 items-center justify-center rounded-full text-foreground/65 hover:bg-foreground/10 md:hidden"
-          aria-label="Open sidebar"
-        >
-          <Menu className="size-5" />
-        </button>
-        <div className="hidden items-center gap-2 rounded-full border border-border bg-card px-3 py-1.5 text-xs text-foreground/58 sm:flex">
-          <Target className="size-3.5 text-primary" />
-          Nova
-        </div>
-        <DropdownSelect
-          value={selectedAgent}
-          options={agentOptions.map((agent) => ({
-            value: agent,
-            label: agent,
-            disabled: agent !== "Nova",
-          }))}
-          onChange={onAgentChange}
-          className="max-w-[58vw] md:max-w-none"
-        />
-        <span className="hidden rounded-full border border-border px-2.5 py-1 text-[11px] text-foreground/38 lg:inline-flex">
-          {activeProvider}
-        </span>
-      </div>
+      <button
+        type="button"
+        onClick={onOpenSidebar}
+        className="inline-flex size-9 items-center justify-center rounded-full text-foreground/65 hover:bg-foreground/10 md:hidden"
+        aria-label="Open sidebar"
+      >
+        <Menu className="size-5" />
+      </button>
+      <div className="hidden md:block" />
 
       <div className="flex items-center gap-1.5">
         <button
@@ -1141,16 +1245,16 @@ function TopBar({
           onClick={onOpenOnboarding}
           className="hidden h-8 items-center gap-2 rounded-full border border-primary/20 bg-primary/8 px-3 text-xs font-medium text-primary hover:bg-primary/12 sm:inline-flex"
         >
-          <Target className="size-4" />
-          Setup
+          <Pencil className="size-4" />
+          Edit profile
         </button>
         <button
           type="button"
           onClick={onOpenOnboarding}
           className="inline-flex size-9 items-center justify-center rounded-full text-foreground/65 hover:bg-foreground/10 sm:hidden"
-          aria-label="Onboard company"
+          aria-label="Edit business profile"
         >
-          <Target className="size-5" />
+          <Pencil className="size-5" />
         </button>
         <button
           type="button"
@@ -1362,7 +1466,10 @@ function AgentWorkspaceHero({
   const [draftText, setDraftText] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [wizardError, setWizardError] = useState<string | null>(null);
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const [showBreakdown, setShowBreakdown] = useState(false);
+  const [isUploadingAnswer, setIsUploadingAnswer] = useState(false);
+  const bottomRef = useRef<HTMLDivElement>(null);
+  const wizardFileInputRef = useRef<HTMLInputElement>(null);
   const wizard = diagnosisReport?.wizard ?? null;
   const percent =
     wizard && wizard.totalCount > 0
@@ -1370,7 +1477,12 @@ function AgentWorkspaceHero({
       : 0;
 
   useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
+    // The conversation used to scroll inside its own small fixed-height
+    // box (nested inside a page that already scrolls) -- a boxed-in,
+    // double-scrollbar feel. It now grows naturally with the page, so
+    // "scroll to the latest message" means scrolling the bottom marker
+    // into view, not scrolling a container that no longer scrolls itself.
+    bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [wizard?.turnHistory.length]);
 
   const submitAnswer = async (mode: WebsiteSalesDataAnswerMode, answerText?: string) => {
@@ -1393,6 +1505,35 @@ function AgentWorkspaceHero({
       setWizardError(err instanceof Error ? err.message : "Could not record that answer.");
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const uploadAnswerFile = async (file: File) => {
+    if (!wizard?.currentQuestion) return;
+    const supported = /\.(txt|md|csv|json|pdf|docx)$/i.test(file.name);
+    if (!supported) {
+      setWizardError("Upload PDF, DOCX, TXT, Markdown, CSV, or JSON.");
+      return;
+    }
+    setIsUploadingAnswer(true);
+    setWizardError(null);
+    try {
+      // Uploads the real document as a knowledge source Nova can actually
+      // retrieve from, then marks this wizard question answered by
+      // referencing it -- so a business with an existing pricing sheet or
+      // policy PDF never has to retype it by hand.
+      await uploadTenantKnowledgeFile({
+        tenantId,
+        file,
+        title: `${wizard.currentQuestion.prompt.slice(0, 60)} (uploaded: ${file.name})`,
+        category: wizard.currentQuestion.dataRequestId,
+        sourceType: "document",
+      });
+      await submitAnswer("text", `Uploaded document: ${file.name}`);
+    } catch (err) {
+      setWizardError(err instanceof Error ? err.message : "Could not upload file.");
+    } finally {
+      setIsUploadingAnswer(false);
     }
   };
 
@@ -1432,22 +1573,50 @@ function AgentWorkspaceHero({
 
   return (
     <div className="jaabili-rise-in mx-auto w-full max-w-3xl">
-      <div className="mb-4 flex items-center gap-4 rounded-2xl border border-border bg-card/85 p-4">
-        <ProgressRing percent={percent} />
-        <div className="min-w-0 flex-1">
-          <div className="text-base font-semibold text-foreground">
-            {wizard?.status === "completed"
-              ? "Business analysis complete"
-              : "Business problem analysis"}
+      <div className="mb-4 rounded-2xl border border-border bg-card/85 p-4">
+        <div className="flex items-center gap-4">
+          <ProgressRing percent={percent} />
+          <div className="min-w-0 flex-1">
+            <div className="text-base font-semibold text-foreground">
+              {wizard?.status === "completed"
+                ? "Business analysis complete"
+                : "Business problem analysis"}
+            </div>
+            <div className="mt-1 text-sm leading-6 text-foreground/50">
+              {!wizard
+                ? "Preparing Nova's questions for your business."
+                : wizard.status === "completed"
+                  ? "Review what Nova found and approve the solutions you want it to work on."
+                  : `Nova is asking what it needs to diagnose your sales gaps. ${wizard.answeredCount} of ${wizard.totalCount} answered.`}
+            </div>
           </div>
-          <div className="mt-1 text-sm leading-6 text-foreground/50">
-            {!wizard
-              ? "Preparing Nova's questions for your business."
-              : wizard.status === "completed"
-                ? "Review what Nova found and approve the solutions you want it to work on."
-                : `Nova is asking what it needs to diagnose your sales gaps. ${wizard.answeredCount} of ${wizard.totalCount} answered.`}
-          </div>
+          {diagnosisReport && diagnosisReport.dataRequests.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setShowBreakdown((value) => !value)}
+              className="flex shrink-0 items-center gap-1 rounded-full px-2 py-1 text-xs text-foreground/45 hover:bg-foreground/8 hover:text-foreground"
+            >
+              {showBreakdown ? "Hide" : "Breakdown"}
+              <ChevronDown className={cn("size-3.5 transition-transform", showBreakdown && "rotate-180")} />
+            </button>
+          )}
         </div>
+        <AnimatePresence initial={false}>
+          {showBreakdown && diagnosisReport && diagnosisReport.dataRequests.length > 0 && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.2, ease: "easeOut" }}
+              className="overflow-hidden"
+            >
+              <DiagnosisTaskBreakdown
+                dataRequests={diagnosisReport.dataRequests}
+                currentDataRequestId={wizard?.currentQuestion?.dataRequestId ?? null}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       <div className="overflow-hidden rounded-2xl border border-border bg-card/85">
@@ -1466,7 +1635,7 @@ function AgentWorkspaceHero({
           />
         ) : (
           <>
-            <div ref={scrollRef} className="max-h-[26rem] space-y-4 overflow-y-auto px-5 py-5">
+            <div className="space-y-6 px-5 py-6">
               {wizard.turnHistory.length === 0 && wizard.currentQuestion && (
                 <WizardTurnBubble
                   turn={{
@@ -1484,12 +1653,19 @@ function AgentWorkspaceHero({
               ))}
               {isSubmitting && (
                 <div className="flex gap-3">
-                  <div className="mt-2 size-2 shrink-0 rounded-full bg-primary/70" />
+                  <div className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/12 text-primary">
+                    <NovaAgentIcon className="size-4" />
+                  </div>
                   <div className="rounded-3xl px-5 py-3">
-                    <ThinkingDots />
+                    {wizard.answeredCount + 1 >= wizard.totalCount ? (
+                      <DiagnosisFindingsStatus />
+                    ) : (
+                      <ThinkingDots />
+                    )}
                   </div>
                 </div>
               )}
+              <div ref={bottomRef} />
             </div>
             {wizardError && (
               <div className="mx-5 mb-2 rounded-xl border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
@@ -1511,12 +1687,99 @@ function AgentWorkspaceHero({
                   onChange={setDraftText}
                   onSend={() => draftText.trim() && submitAnswer("text", draftText.trim())}
                   onSkip={() => submitAnswer("skip")}
+                  onUploadFile={uploadAnswerFile}
+                  isUploading={isUploadingAnswer}
                 />
               )}
             </div>
           </>
         )}
       </div>
+    </div>
+  );
+}
+
+const DATA_REQUEST_CATEGORY_LABELS: Record<string, string> = {
+  company: "Company",
+  website: "Website",
+  offer: "Offer",
+  sales: "Sales",
+  customer: "Customer",
+  policy: "Policy",
+  analytics: "Analytics",
+  content: "Content",
+  handoff: "Handoff",
+};
+
+// Inspired by how Replit shows a task broken into subtasks that merge into
+// one result, rather than a single bare percentage -- a client can see
+// which parts of the picture Nova already has (Company, Website, Offer...)
+// instead of just a number with no shape to it.
+function DiagnosisTaskBreakdown({
+  dataRequests,
+  currentDataRequestId,
+}: {
+  dataRequests: Array<{ id: string; category: string; status: string }>;
+  currentDataRequestId: string | null;
+}) {
+  const categories = Array.from(new Set(dataRequests.map((item) => item.category)));
+
+  return (
+    <div className="mt-4 flex flex-wrap gap-1.5 border-t border-border pt-3">
+      {categories.map((category) => {
+        const items = dataRequests.filter((item) => item.category === category);
+        const done = items.filter((item) => item.status !== "needed").length;
+        const isActive = items.some((item) => item.id === currentDataRequestId);
+        const isComplete = done === items.length;
+
+        return (
+          <motion.span
+            key={category}
+            layout
+            animate={
+              isComplete
+                ? { scale: [1, 1.08, 1] }
+                : { scale: 1 }
+            }
+            transition={{ duration: 0.35, ease: "easeOut" }}
+            className={cn(
+              "flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors",
+              isComplete
+                ? "border-primary/25 bg-primary/10 text-primary"
+                : isActive
+                  ? "border-foreground/25 bg-foreground/8 text-foreground"
+                  : "border-border text-foreground/40",
+            )}
+          >
+            <AnimatePresence mode="wait" initial={false}>
+              {isComplete ? (
+                <motion.span
+                  key="check"
+                  initial={{ scale: 0, rotate: -45 }}
+                  animate={{ scale: 1, rotate: 0 }}
+                  transition={{ type: "spring", stiffness: 500, damping: 20 }}
+                >
+                  <Check className="size-3" />
+                </motion.span>
+              ) : (
+                <motion.span
+                  key="dot"
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  className={cn(
+                    "block size-1.5 rounded-full",
+                    isActive ? "bg-foreground/60" : "bg-foreground/25",
+                  )}
+                />
+              )}
+            </AnimatePresence>
+            {DATA_REQUEST_CATEGORY_LABELS[category] ?? category}
+            <span className="text-[10px] opacity-60">
+              {done}/{items.length}
+            </span>
+          </motion.span>
+        );
+      })}
     </div>
   );
 }
@@ -1616,12 +1879,12 @@ function VisitorSimulatorPanel({
       </div>
 
       {isOpen && (
-        <div className="mt-4 rounded-2xl border border-border bg-black/20 p-3">
+        <div className="mt-4 rounded-2xl border border-border bg-muted p-3">
           <ConversationOutcomeStrip lead={lead} analytics={analytics} readiness={readiness} />
           <div className="max-h-72 overflow-y-auto py-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {messages.length === 0 ? (
               <div className="rounded-2xl bg-foreground/[0.03] p-4 text-sm leading-6 text-foreground/45">
-                Start with a realistic visitor question after uploading the client website, FAQs, pricing, and policies.
+                Start with a realistic visitor question after uploading your website, FAQs, pricing, and policies.
               </div>
             ) : (
               <div className="space-y-4">
@@ -1634,7 +1897,9 @@ function VisitorSimulatorPanel({
                 ))}
                 {isSending && (
                   <div className="flex items-center gap-3 text-foreground/45">
-                    <NovaAgentIcon className="size-5 text-primary" />
+                    <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/12 text-primary">
+                      <NovaAgentIcon className="size-4" />
+                    </div>
                     <ThinkingDots />
                   </div>
                 )}
@@ -1648,7 +1913,7 @@ function VisitorSimulatorPanel({
                 key={prompt}
                 type="button"
                 onClick={() => onPrompt(prompt)}
-                className="min-h-9 rounded-xl border border-border bg-black/20 px-3 py-2 text-left text-[12px] text-foreground/58 transition hover:border-primary/40 hover:bg-primary/10 hover:text-foreground"
+                className="min-h-9 rounded-xl border border-border bg-muted px-3 py-2 text-left text-[12px] text-foreground/58 transition hover:border-primary/40 hover:bg-primary/10 hover:text-foreground"
               >
                 {prompt}
               </button>
@@ -1903,13 +2168,6 @@ function Composer({
           </div>
           <button
             type="button"
-            className="hidden size-9 shrink-0 items-center justify-center rounded-full text-foreground/70 hover:bg-foreground/10 sm:inline-flex"
-            aria-label="Voice input"
-          >
-            <Mic className="size-5" />
-          </button>
-          <button
-            type="button"
             onClick={onSend}
             disabled={!message.trim() || isSending}
             className="inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-foreground text-background transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
@@ -1980,6 +2238,7 @@ function KnowledgeDialog({
   state,
   onClose,
   onSubmit,
+  onUploadFile,
 }: {
   state: KnowledgeDialogState | null;
   onClose: () => void;
@@ -1990,11 +2249,14 @@ function KnowledgeDialog({
     url?: string;
     text?: string;
   }) => Promise<void>;
+  onUploadFile: (file: File) => Promise<void>;
 }) {
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setTitle(state?.title ?? "");
@@ -2008,20 +2270,20 @@ function KnowledgeDialog({
   const isWebsite = state.type === "website";
   const labels = {
     website: {
-      heading: "Add client website",
-      body: "Paste the website or service page URL. It will be fetched and added to Jaabilv 2.0 retrieval.",
-      placeholder: "https://client.com/services",
+      heading: "Add your website",
+      body: "Paste your website or service page URL. It will be fetched and added to Jaabilv 2.0 retrieval.",
+      placeholder: "https://yourbusiness.com/services",
       action: "Add website",
     },
     document: {
-      heading: "Add client PDF or document",
-      body: "Paste approved content from a client PDF, brochure, proposal, or onboarding document.",
+      heading: "Add a PDF or document",
+      body: "Paste approved content from a PDF, brochure, proposal, or onboarding document.",
       placeholder: "Document title:\nKey facts:\nRules the agent must follow:",
       action: "Add document",
     },
     faq: {
-      heading: "Add client FAQs",
-      body: "Paste approved FAQs. Keep answers factual and client-approved.",
+      heading: "Add your FAQs",
+      body: "Paste your approved FAQs. Keep answers factual and accurate.",
       placeholder: "Q: What are your timings?\nA: We are open from...",
       action: "Add FAQs",
     },
@@ -2095,6 +2357,47 @@ function KnowledgeDialog({
             className="mt-2 h-12 w-full rounded-2xl border border-border bg-card px-4 text-foreground outline-none focus:border-primary/50"
           />
         </label>
+
+        {!isWebsite && (
+          <div className="mb-4">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".pdf,.docx,.txt,.md,.csv,.json"
+              className="hidden"
+              onChange={async (event) => {
+                const file = event.target.files?.[0];
+                event.target.value = "";
+                if (!file) return;
+                setIsUploading(true);
+                try {
+                  await onUploadFile(file);
+                  onClose();
+                } finally {
+                  setIsUploading(false);
+                }
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isUploading}
+              className="flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-border px-4 py-3 text-sm font-medium text-foreground/65 transition hover:border-primary/40 hover:bg-primary/5 disabled:opacity-50"
+            >
+              {isUploading ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <Upload className="size-4" />
+              )}
+              {isUploading ? "Uploading..." : "Have a file? Upload it directly (PDF, DOCX, TXT)"}
+            </button>
+            <div className="my-3 flex items-center gap-3 text-xs text-foreground/35">
+              <div className="h-px flex-1 bg-border" />
+              or type it in
+              <div className="h-px flex-1 bg-border" />
+            </div>
+          </div>
+        )}
 
         <label className="block text-sm text-foreground/55">
           {isWebsite ? "Website URL" : "Approved content"}
@@ -2173,7 +2476,9 @@ function MessageBubble({
   return (
     <div className={cn("jaabili-message-in flex gap-3", isVisitor && "justify-end")}>
       {!isVisitor && (
-        <div className="mt-2 size-2 shrink-0 rounded-full bg-primary/70" />
+        <div className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/12 text-primary">
+          <NovaAgentIcon className="size-4" />
+        </div>
       )}
       <div
         className={cn(
@@ -2187,9 +2492,6 @@ function MessageBubble({
           message.content
         )}
       </div>
-      {isVisitor && (
-        <div className="mt-2 size-2 shrink-0 rounded-full bg-foreground/45" />
-      )}
     </div>
   );
 }
@@ -2266,6 +2568,42 @@ function AnalyzingStatus() {
         className="jaabili-analyzing-stage text-xs text-foreground/45"
       >
         {ANALYZING_STAGES[stageIndex]}
+      </span>
+    </div>
+  );
+}
+
+// The wizard's final answer triggers a real LLM "pinpointed findings" pass
+// (same latency class as live chat, ~20-40s on current hardware) -- every
+// earlier answer is just storage + embedding (~1-2s). Reuses the
+// AnalyzingStatus cycling-text pattern with wizard-appropriate stage copy so
+// the long final wait doesn't read as frozen.
+const DIAGNOSIS_FINDINGS_STAGES = [
+  "Reviewing your answers...",
+  "Cross-checking your data room...",
+  "Diagnosing gaps...",
+  "Drafting pinpointed findings...",
+] as const;
+
+function DiagnosisFindingsStatus() {
+  const [stageIndex, setStageIndex] = useState(0);
+
+  useEffect(() => {
+    setStageIndex(0);
+    const interval = window.setInterval(() => {
+      setStageIndex((current) => Math.min(current + 1, DIAGNOSIS_FINDINGS_STAGES.length - 1));
+    }, 3200);
+    return () => window.clearInterval(interval);
+  }, []);
+
+  return (
+    <div className="flex items-center gap-2">
+      <ThinkingDots />
+      <span
+        key={stageIndex}
+        className="jaabili-analyzing-stage text-xs text-foreground/45"
+      >
+        {DIAGNOSIS_FINDINGS_STAGES[stageIndex]}
       </span>
     </div>
   );
@@ -2361,22 +2699,11 @@ function InspectorDrawer({
               {tenant?.name ?? "Jaabili Technologies"}
             </div>
             <div className="mt-1 truncate text-xs text-foreground/40">
-              {tenant?.industry ?? tenant?.websiteUrl ?? "Default client workspace"}
+              {tenant?.industry ?? tenant?.websiteUrl ?? "Default workspace"}
             </div>
           </div>
-          <div className="rounded-2xl bg-card p-4">
-            <div className="flex justify-between text-sm">
-              <span>Knowledge base</span>
-              <span className="text-primary">
-                {status?.intelligence.knowledge?.chunkCount ?? 0} chunks
-              </span>
-            </div>
-            <div className="mt-1 text-xs text-foreground/40">
-              {status?.intelligence.knowledge?.version ?? "not ingested"}
-            </div>
-          </div>
-          {tenantSources.length > 0 && (
-            <div className="mt-2 space-y-2">
+          {tenantSources.length > 0 ? (
+            <div className="space-y-2">
               {tenantSources.slice(0, 4).map((source) => (
                 <div
                   key={source.id}
@@ -2389,47 +2716,9 @@ function InspectorDrawer({
                 </div>
               ))}
             </div>
-          )}
-        </InspectorBlock>
-
-        <InspectorBlock title="Sales diagnosis">
-          {diagnosisReport ? (
-            <div className="space-y-3">
-              <div className="rounded-2xl border border-primary/20 bg-primary/10 p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className="text-xs uppercase tracking-[0.16em] text-foreground/35">
-                      Deep analysis
-                    </div>
-                    <div className="mt-1 truncate text-sm font-semibold text-foreground">
-                      {diagnosisReport.companySnapshot.name}
-                    </div>
-                  </div>
-                  <span className="rounded-full bg-black/25 px-2 py-1 text-xs text-primary">
-                    {diagnosisReport.confidence}
-                  </span>
-                </div>
-                <p className="mt-3 text-sm leading-6 text-foreground/70">
-                  {diagnosisReport.summary}
-                </p>
-              </div>
-              <div className="flex items-center justify-between rounded-2xl bg-card p-4">
-                <span className="text-sm text-foreground/70">
-                  {diagnosisReport.wizard.status === "completed"
-                    ? "Conversation complete"
-                    : "Conversation in progress"}
-                </span>
-                <span className="rounded-full bg-black/20 px-2 py-1 text-xs text-foreground/60">
-                  {diagnosisReport.wizard.answeredCount}/{diagnosisReport.wizard.totalCount} answered
-                </span>
-              </div>
-              <div className="rounded-2xl border border-border bg-black/20 p-4 text-sm leading-6 text-foreground/60">
-                {diagnosisReport.nextBestStep}
-              </div>
-            </div>
           ) : (
             <div className="rounded-2xl border border-dashed border-border bg-card p-4 text-sm text-foreground/40">
-              Sales diagnosis is loading.
+              No sources added yet.
             </div>
           )}
         </InspectorBlock>
@@ -2470,7 +2759,7 @@ function InspectorDrawer({
                           </span>
                         </div>
                         {action.recommendedMessage ? (
-                          <div className="mt-3 rounded-xl border border-border bg-black/25 px-3 py-2 text-xs leading-5 text-foreground/58">
+                          <div className="mt-3 rounded-xl border border-border bg-muted px-3 py-2 text-xs leading-5 text-foreground/58">
                             {action.recommendedMessage}
                           </div>
                         ) : null}
@@ -2497,100 +2786,6 @@ function InspectorDrawer({
           ) : (
             <div className="rounded-2xl border border-dashed border-border bg-card p-4 text-sm text-foreground/40">
               Work queue is loading.
-            </div>
-          )}
-        </InspectorBlock>
-
-        <InspectorBlock title="Learning loop">
-          {learningReport ? (
-            <div className="space-y-3">
-              <div className="rounded-2xl border border-primary/20 bg-card p-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs uppercase tracking-[0.16em] text-foreground/40">
-                    Learning score
-                  </span>
-                  <span className="text-2xl font-semibold text-foreground">
-                    {learningReport.learningScore}
-                  </span>
-                </div>
-                <div className="mt-2 text-xs text-foreground/45">
-                  {learningReport.stage}
-                </div>
-                <div className="mt-3 text-sm leading-6 text-foreground/68">
-                  {learningReport.summary}
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <Metric
-                  label="Labeled"
-                  value={learningReport.labelStats.labeledConversations}
-                />
-                <Metric
-                  label="Training"
-                  value={learningReport.labelStats.trainingReady}
-                />
-                <Metric
-                  label="Avg audit"
-                  value={learningReport.answerQuality.averageScore}
-                />
-                <Metric
-                  label="Handoffs"
-                  value={learningReport.answerQuality.handoff}
-                />
-              </div>
-              {learningReport.sourceGaps.length > 0 && (
-                <div className="rounded-2xl bg-card p-4">
-                  <div className="mb-2 text-xs uppercase tracking-[0.16em] text-foreground/35">
-                    Source gaps
-                  </div>
-                  <div className="space-y-1 text-xs leading-5 text-foreground/55">
-                    {learningReport.sourceGaps.slice(0, 4).map((gap) => (
-                      <div key={gap}>- {gap}</div>
-                    ))}
-                  </div>
-                </div>
-              )}
-              {learningReport.insights.slice(0, 3).map((insight) => (
-                <div key={insight.id} className="rounded-2xl bg-card p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <div className="truncate text-sm font-medium text-foreground/85">
-                        {insight.title}
-                      </div>
-                      <div className="mt-1 text-xs leading-5 text-foreground/45">
-                        {insight.improvement}
-                      </div>
-                    </div>
-                    <span className="rounded-full bg-foreground/8 px-2 py-1 text-[11px] text-foreground/45">
-                      {insight.priority}
-                    </span>
-                  </div>
-                </div>
-              ))}
-              {learningReport.evalQuestions.length > 0 && (
-                <div className="rounded-2xl border border-border bg-black/20 p-4">
-                  <div className="mb-2 text-xs uppercase tracking-[0.16em] text-foreground/35">
-                    Test next
-                  </div>
-                  <div className="space-y-2">
-                    {learningReport.evalQuestions.slice(0, 3).map((question) => (
-                      <div
-                        key={question.id}
-                        className="rounded-xl bg-foreground/[0.04] px-3 py-2 text-xs leading-5 text-foreground/58"
-                      >
-                        {question.question}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-              <div className="rounded-2xl bg-card p-4 text-sm leading-6 text-foreground/60">
-                {learningReport.nextTrainingStep}
-              </div>
-            </div>
-          ) : (
-            <div className="rounded-2xl border border-dashed border-border bg-card p-4 text-sm text-foreground/40">
-              Learning report is loading.
             </div>
           )}
         </InspectorBlock>
@@ -2641,52 +2836,6 @@ function InspectorDrawer({
           )}
         </InspectorBlock>
 
-        <InspectorBlock title="Conversation labels">
-          {conversation ? (
-            <LabelEditor
-              labels={conversation.labels ?? []}
-              onChange={onLabelsChange}
-            />
-          ) : (
-            <div className="rounded-2xl border border-dashed border-border bg-card p-4 text-sm text-foreground/40">
-              Start or open a chat to label it for training.
-            </div>
-          )}
-        </InspectorBlock>
-
-        <InspectorBlock title="Readiness">
-          {readiness ? (
-            <div className="space-y-2">
-              <div className="rounded-2xl border border-secondary/20 bg-secondary/10 p-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs uppercase tracking-[0.16em] text-foreground/40">
-                    Agent grade
-                  </span>
-                  <span className="text-2xl font-semibold text-secondary">
-                    {readiness.grade}
-                  </span>
-                </div>
-                <div className="mt-2 text-xs text-foreground/45">
-                  {readiness.score}/100 - {readiness.stage}
-                </div>
-                <div className="mt-3 text-sm text-foreground/72">
-                  {readiness.readyToPilot
-                    ? "Pilot-ready for controlled traffic."
-                    : readiness.nextActions[0] ?? "Add more client data."}
-                </div>
-              </div>
-              {readiness.gaps.slice(0, 3).map((gap) => (
-                <div key={gap} className="rounded-xl bg-card px-3 py-2 text-xs text-foreground/52">
-                  {gap}
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="rounded-2xl border border-dashed border-border bg-card p-4 text-sm text-foreground/40">
-              Readiness report is loading.
-            </div>
-          )}
-        </InspectorBlock>
 
         <InspectorBlock title="Install on website">
           <InstallSnippet
@@ -2696,70 +2845,6 @@ function InspectorDrawer({
           />
         </InspectorBlock>
 
-        <InspectorBlock title="Activation">
-          {activationPlan ? (
-            <div className="space-y-3">
-              <div className="rounded-2xl border border-primary/20 bg-primary/10 p-4">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <div className="text-xs uppercase tracking-[0.16em] text-foreground/35">
-                      Launch consent
-                    </div>
-                    <div className="mt-1 text-sm font-semibold text-foreground">
-                      {activationPlan.status.replace(/_/g, " ")}
-                    </div>
-                  </div>
-                  <div className="rounded-full bg-black/25 px-2 py-1 text-xs text-primary">
-                    {activationPlan.report.confidence}
-                  </div>
-                </div>
-                <p className="mt-3 text-sm leading-6 text-foreground/65">
-                  {activationPlan.report.summary}
-                </p>
-              </div>
-              <div className="rounded-2xl bg-card p-4">
-                <div className="mb-2 text-xs uppercase tracking-[0.16em] text-foreground/35">
-                  Agent work after consent
-                </div>
-                <div className="space-y-1 text-xs leading-5 text-foreground/55">
-                  {activationPlan.report.websiteSalesWorkflows.slice(0, 4).map((item) => (
-                    <div key={item}>- {item}</div>
-                  ))}
-                </div>
-              </div>
-              {!activationPlan.consentApproved ? (
-                <button
-                  type="button"
-                  disabled={isActivationWorking}
-                  onClick={() => onApproveActivation(activationPlan.id)}
-                  className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-full bg-foreground text-sm font-semibold text-background disabled:opacity-50"
-                >
-                  {isActivationWorking && <Loader2 className="size-4 animate-spin" />}
-                  Approve agent launch
-                </button>
-              ) : (
-                <div className="rounded-full bg-primary/15 px-4 py-2 text-center text-sm text-primary">
-                  Launch approved
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="space-y-3">
-              <div className="rounded-2xl border border-dashed border-border bg-card p-4 text-sm text-foreground/45">
-                Generate a deep analysis from company details, sources, and promo assets before launch.
-              </div>
-              <button
-                type="button"
-                disabled={isActivationWorking}
-                onClick={onGenerateActivation}
-                className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-full bg-foreground text-sm font-semibold text-background disabled:opacity-50"
-              >
-                {isActivationWorking && <Loader2 className="size-4 animate-spin" />}
-                Generate activation analysis
-              </button>
-            </div>
-          )}
-        </InspectorBlock>
 
         <InspectorBlock title="Lead">
           {lead ? (
@@ -2982,9 +3067,15 @@ function DiagnosisWizardDrawer({
               ))}
               {isSubmitting && (
                 <div className="flex gap-3">
-                  <div className="mt-2 size-2 shrink-0 rounded-full bg-primary/70" />
+                  <div className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/12 text-primary">
+                    <NovaAgentIcon className="size-4" />
+                  </div>
                   <div className="rounded-3xl px-5 py-3">
-                    <ThinkingDots />
+                    {wizard.answeredCount + 1 >= wizard.totalCount ? (
+                      <DiagnosisFindingsStatus />
+                    ) : (
+                      <ThinkingDots />
+                    )}
                   </div>
                 </div>
               )}
@@ -3023,17 +3114,20 @@ function WizardTurnBubble({ turn }: { turn: WebsiteSalesWizardTurn }) {
   const isOwner = turn.role === "owner";
 
   return (
-    <div className={cn("flex gap-3", isOwner && "justify-end")}>
-      {!isOwner && <div className="mt-2 size-2 shrink-0 rounded-full bg-primary/70" />}
+    <div className={cn("jaabili-message-in flex gap-3", isOwner && "justify-end")}>
+      {!isOwner && (
+        <div className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/12 text-primary">
+          <NovaAgentIcon className="size-4" />
+        </div>
+      )}
       <div
         className={cn(
-          "max-w-[85%] whitespace-pre-wrap rounded-3xl px-5 py-3 text-[14px] leading-6",
-          isOwner ? "bg-black/20 text-foreground" : "text-foreground/78",
+          "max-w-[85%] whitespace-pre-wrap rounded-3xl px-5 py-4 text-[15px] leading-7",
+          isOwner ? "bg-muted text-foreground" : "text-foreground/78",
         )}
       >
         {turn.content}
       </div>
-      {isOwner && <div className="mt-2 size-2 shrink-0 rounded-full bg-foreground/45" />}
     </div>
   );
 }
@@ -3045,6 +3139,8 @@ function WizardComposer({
   onChange,
   onSend,
   onSkip,
+  onUploadFile,
+  isUploading,
 }: {
   value: string;
   disabled: boolean;
@@ -3052,10 +3148,39 @@ function WizardComposer({
   onChange: (value: string) => void;
   onSend: () => void;
   onSkip: () => void;
+  onUploadFile?: (file: File) => void;
+  isUploading?: boolean;
 }) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   return (
     <div className="space-y-2">
-      <div className="flex items-end gap-2 rounded-2xl border border-border bg-black/20 px-3 py-2">
+      <div className="flex items-end gap-2 rounded-2xl border border-border bg-muted px-3 py-2">
+        {onUploadFile && (
+          <>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".pdf,.docx,.txt,.md,.csv,.json"
+              className="hidden"
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                event.target.value = "";
+                if (file) onUploadFile(file);
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={disabled || isUploading}
+              className="inline-flex size-9 shrink-0 items-center justify-center rounded-full text-foreground/55 hover:bg-foreground/10 disabled:opacity-40"
+              aria-label="Upload a document to answer this instead of typing"
+              title="Have a file for this? Upload it instead of typing."
+            >
+              {isUploading ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
+            </button>
+          </>
+        )}
         <textarea
           value={value}
           disabled={disabled}
@@ -3067,8 +3192,8 @@ function WizardComposer({
             }
           }}
           rows={2}
-          placeholder="Type your answer..."
-          className="min-h-9 flex-1 resize-none bg-transparent text-sm outline-none placeholder:text-foreground/35"
+          placeholder="Type your answer, or upload a document instead..."
+          className="min-h-9 max-h-32 flex-1 resize-none overflow-y-auto bg-transparent text-sm outline-none [scrollbar-width:none] [&::-webkit-scrollbar]:hidden placeholder:text-foreground/35"
         />
         <button
           type="button"
@@ -3151,24 +3276,44 @@ export function DiagnosisResultsView({
 
   return (
     <div className="flex-1 space-y-6 overflow-y-auto px-5 py-5">
-      <div className="rounded-2xl border border-primary/25 bg-primary/10 p-4">
-        <div className="text-xs uppercase tracking-[0.16em] text-foreground/40">
-          Diagnosis complete
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: "easeOut" }}
+        className="rounded-2xl border border-primary/25 bg-primary/10 p-4"
+      >
+        <div className="flex items-center gap-4">
+          <ReadinessGauge score={report.readiness.score} grade={report.readiness.grade} />
+          <div className="min-w-0 flex-1">
+            <div className="text-xs uppercase tracking-[0.16em] text-foreground/40">
+              Diagnosis complete
+            </div>
+            <p className="mt-2 text-sm leading-6 text-foreground/80">{report.summary}</p>
+          </div>
         </div>
-        <p className="mt-2 text-sm leading-6 text-foreground/80">{report.summary}</p>
-      </div>
+        {report.issues.length > 0 && (
+          <div className="mt-4 flex items-center gap-3 border-t border-primary/15 pt-3">
+            <span className="text-[11px] text-foreground/40">Issues by severity</span>
+            <SeverityBreakdown issues={report.issues} />
+          </div>
+        )}
+      </motion.div>
 
       {report.pinpointedFindings.length > 0 && (
-        <section>
+        <motion.section
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, ease: "easeOut", delay: 0.05 }}
+        >
           <h3 className="mb-2 text-sm font-semibold text-foreground/70">Specific findings</h3>
-          <div className="rounded-2xl bg-black/20 p-4">
+          <div className="rounded-2xl bg-muted p-4">
             <ul className="list-disc space-y-2 pl-4 text-xs leading-5 text-foreground/70">
               {report.pinpointedFindings.map((finding) => (
                 <li key={finding}>{finding}</li>
               ))}
             </ul>
           </div>
-        </section>
+        </motion.section>
       )}
 
       <section>
@@ -3176,8 +3321,14 @@ export function DiagnosisResultsView({
           Where {report.companySnapshot.name} is losing sales
         </h3>
         <div className="space-y-2">
-          {report.issues.map((issue) => (
-            <div key={issue.id} className="rounded-2xl bg-black/20 p-4">
+          {report.issues.map((issue, index) => (
+            <motion.div
+              key={issue.id}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.35, ease: "easeOut", delay: 0.08 + index * 0.05 }}
+              className="rounded-2xl bg-muted p-4"
+            >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <div className="text-sm font-medium text-foreground/85">{issue.title}</div>
@@ -3185,7 +3336,7 @@ export function DiagnosisResultsView({
                 </div>
                 <SeverityPill severity={issue.severity} />
               </div>
-            </div>
+            </motion.div>
           ))}
           {report.issues.length === 0 && (
             <div className="rounded-2xl border border-dashed border-border p-4 text-xs text-foreground/40">
@@ -3210,7 +3361,7 @@ export function DiagnosisResultsView({
                 "w-full rounded-2xl border p-4 text-left transition",
                 solution.status === "selected"
                   ? "border-primary/50 bg-primary/10"
-                  : "border-border bg-black/20 hover:border-foreground/20",
+                  : "border-border bg-muted hover:border-foreground/20",
               )}
             >
               <div className="flex items-start justify-between gap-3">
@@ -3252,7 +3403,7 @@ export function DiagnosisResultsView({
           <h3 className="text-sm font-semibold text-foreground/70">
             What Nova will do once approved
           </h3>
-          <div className="rounded-2xl bg-black/20 p-4 text-xs leading-6 text-foreground/60">
+          <div className="rounded-2xl bg-muted p-4 text-xs leading-6 text-foreground/60">
             <div className="mb-2 text-[11px] uppercase tracking-[0.14em] text-foreground/35">
               Sales thesis
             </div>
@@ -3262,7 +3413,7 @@ export function DiagnosisResultsView({
               ))}
             </ul>
           </div>
-          <div className="rounded-2xl bg-black/20 p-4 text-xs leading-6 text-foreground/60">
+          <div className="rounded-2xl bg-muted p-4 text-xs leading-6 text-foreground/60">
             <div className="mb-2 text-[11px] uppercase tracking-[0.14em] text-foreground/35">
               Human escalation rules
             </div>
@@ -3272,7 +3423,7 @@ export function DiagnosisResultsView({
               ))}
             </ul>
           </div>
-          <div className="rounded-2xl bg-black/20 p-4 text-xs leading-6 text-foreground/60">
+          <div className="rounded-2xl bg-muted p-4 text-xs leading-6 text-foreground/60">
             <div className="mb-2 text-[11px] uppercase tracking-[0.14em] text-foreground/35">
               Success metrics we will track
             </div>
@@ -3390,7 +3541,7 @@ function InstallSnippet({
       </div>
       <textarea
         aria-label="Website Sales Agent install script"
-        className="min-h-36 w-full resize-none rounded-2xl border border-border bg-black/45 p-3 font-mono text-[11px] leading-5 text-foreground/75 outline-none"
+        className="min-h-36 w-full resize-none rounded-2xl border border-border bg-muted p-3 font-mono text-[11px] leading-5 text-foreground/75 outline-none"
         readOnly
         value={script}
       />
@@ -3508,26 +3659,25 @@ function CompanyOnboardingDrawer({
         <div className="border-b border-border px-5 py-4">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <div className="text-lg font-semibold">Company onboarding</div>
+              <div className="text-lg font-semibold">Business profile</div>
               <div className="mt-1 text-sm text-foreground/45">
-                Prepare Nova for a real client launch.
+                Scroll down to fill in each section below -- Nova uses this to sell for you.
               </div>
             </div>
             <button
               type="button"
               onClick={onClose}
               className="inline-flex size-9 shrink-0 items-center justify-center rounded-full hover:bg-foreground/10"
-              aria-label="Close onboarding"
+              aria-label="Close"
             >
               <X className="size-5" />
             </button>
           </div>
 
-          <div className="mt-4 grid grid-cols-4 gap-2">
+          <div className="mt-4 flex items-center gap-4 text-[11px] text-foreground/45">
+            <span>Progress</span>
             <OnboardingStepBadge label="Company" done={savedCompany} />
             <OnboardingStepBadge label="Sources" done={sourceCount >= 5} />
-            <OnboardingStepBadge label="Analysis" done={Boolean(activationPlan)} />
-            <OnboardingStepBadge label="Launch" done={approved} />
           </div>
         </div>
 
@@ -3541,21 +3691,6 @@ function CompanyOnboardingDrawer({
                 </div>
               </div>
               <div className="flex shrink-0 items-center gap-2">
-                {canAnalyze && !activationPlan && (
-                  <button
-                    type="button"
-                    onClick={runActivationAnalysis}
-                    onMouseDown={(event) => {
-                      event.preventDefault();
-                      runActivationAnalysis();
-                    }}
-                    disabled={isWorking}
-                    className="inline-flex h-9 items-center gap-2 rounded-full bg-primary px-4 text-xs font-semibold text-primary-foreground disabled:opacity-40"
-                  >
-                    {isWorking && <Loader2 className="size-3.5 animate-spin" />}
-                    Analyze
-                  </button>
-                )}
                 <button
                   type="button"
                   onPointerDown={(event) => {
@@ -3598,14 +3733,16 @@ function CompanyOnboardingDrawer({
                   value={draft.websiteUrl}
                   onChange={(websiteUrl) => update({ websiteUrl })}
                 />
-                <InputRow
+                <ChipSelectRow
                   label="Industry"
                   value={draft.industry}
+                  options={["Retail", "Food & beverage", "Healthcare", "Professional services", "Real estate", "Education", "Travel"]}
                   onChange={(industry) => update({ industry })}
                 />
-                <InputRow
+                <ChipSelectRow
                   label="Business model"
                   value={draft.businessModel}
+                  options={["Products (in-store)", "Products (online)", "Services / bookings", "Subscriptions"]}
                   onChange={(businessModel) => update({ businessModel })}
                 />
                 <InputRow
@@ -3634,6 +3771,7 @@ function CompanyOnboardingDrawer({
                 label="Ideal qualified lead"
                 value={draft.idealLead}
                 onChange={(idealLead) => update({ idealLead })}
+                placeholder="e.g. Has a budget in mind, ready to buy within a month, contactable by phone"
               />
               <TextAreaRow
                 label="Primary offer"
@@ -3677,6 +3815,7 @@ function CompanyOnboardingDrawer({
                 label="Competitors or alternatives"
                 value={draft.competitors}
                 onChange={(competitors) => update({ competitors })}
+                placeholder="e.g. Other local bakeries, big-box grocery stores"
               />
             </OnboardingFieldGroup>
 
@@ -3688,21 +3827,25 @@ function CompanyOnboardingDrawer({
                 label="Brand voice"
                 value={draft.brandVoice}
                 onChange={(brandVoice) => update({ brandVoice })}
+                placeholder="e.g. Warm and casual, like a friend behind the counter -- not corporate"
               />
               <TextAreaRow
                 label="Promo assets"
                 value={draft.promoAssets}
                 onChange={(promoAssets) => update({ promoAssets })}
+                placeholder="e.g. Current discount codes, seasonal offers, photos or menus Nova can reference"
               />
               <TextAreaRow
                 label="Offers and campaigns"
                 value={draft.offersAndCampaigns}
                 onChange={(offersAndCampaigns) => update({ offersAndCampaigns })}
+                placeholder="e.g. 10% off first order, free delivery over Rs 1000"
               />
               <TextAreaRow
                 label="Confidentiality and restrictions"
                 value={draft.constraints}
                 onChange={(constraints) => update({ constraints })}
+                placeholder="e.g. Never quote exact prices for custom orders, don't discuss competitor pricing"
               />
             </OnboardingFieldGroup>
 
@@ -3741,11 +3884,13 @@ function CompanyOnboardingDrawer({
                 label="Escalation rules"
                 value={draft.escalationRules}
                 onChange={(escalationRules) => update({ escalationRules })}
+                placeholder="e.g. Hand off to a human for refunds over Rs 5,000 or angry customers"
               />
               <TextAreaRow
                 label="Consent notes"
                 value={draft.consentNotes}
                 onChange={(consentNotes) => update({ consentNotes })}
+                placeholder="e.g. OK to text visitors who leave their number; don't email without opt-in"
               />
             </OnboardingFieldGroup>
           </section>
@@ -3782,7 +3927,7 @@ function CompanyOnboardingDrawer({
                       "flex min-h-14 items-center gap-3 rounded-2xl border px-3 text-left text-sm transition",
                       source.complete
                         ? "border-primary/30 bg-primary/8"
-                        : "border-border bg-black/20 hover:border-primary/35",
+                        : "border-border bg-muted hover:border-primary/35",
                     )}
                   >
                     <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-foreground/8">
@@ -3801,143 +3946,20 @@ function CompanyOnboardingDrawer({
             </div>
           </section>
 
-          <section className="mt-4 rounded-3xl border border-border bg-card/80 p-4">
-            <div className="mb-4 flex items-center justify-between gap-3">
-              <div>
-                <div className="text-sm font-semibold">3. Activation analysis</div>
-                <div className="mt-1 text-xs text-foreground/40">
-                  Generate the agent work plan before live consent.
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={runActivationAnalysis}
-                onMouseDown={(event) => {
-                  event.preventDefault();
-                  runActivationAnalysis();
-                }}
-                onPointerDown={(event) => {
-                  event.preventDefault();
-                  runActivationAnalysis();
-                }}
-                disabled={!canAnalyze || isWorking}
-                className="inline-flex h-9 items-center gap-2 rounded-full bg-foreground px-4 text-xs font-semibold text-background disabled:opacity-40"
-              >
-                {isWorking && <Loader2 className="size-4 animate-spin" />}
-                Generate
-              </button>
-            </div>
-            {activationPlan ? (
-              <div className="space-y-3">
-                <div className="rounded-2xl bg-black/25 p-4 text-sm leading-6 text-foreground/70">
-                  {activationPlan.report.summary}
-                </div>
-                {diagnosisReport && (
-                  <div className="rounded-2xl border border-primary/20 bg-card p-4">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <div className="text-xs uppercase tracking-[0.16em] text-foreground/35">
-                          Diagnosis
-                        </div>
-                        <div className="mt-1 text-sm leading-6 text-foreground/70">
-                          {diagnosisReport.summary}
-                        </div>
-                      </div>
-                      <span className="rounded-full bg-black/25 px-2 py-1 text-xs text-foreground">
-                        {diagnosisReport.confidence}
-                      </span>
-                    </div>
-                    <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                      {diagnosisReport.solutionOptions
-                        .filter((solution) => solution.status === "selected")
-                        .slice(0, 2)
-                        .map((solution) => (
-                          <div
-                            key={solution.id}
-                            className="rounded-xl bg-black/25 px-3 py-2"
-                          >
-                            <div className="truncate text-xs font-semibold text-foreground/80">
-                              {solution.title}
-                            </div>
-                            <div className="mt-1 text-[11px] leading-4 text-foreground/40">
-                              {solution.expectedOutcome}
-                            </div>
-                          </div>
-                        ))}
-                      {diagnosisReport.solutionOptions.every(
-                        (solution) => solution.status !== "selected",
-                      ) && (
-                        <div className="rounded-xl bg-black/25 px-3 py-2 text-xs leading-5 text-foreground/45 sm:col-span-2">
-                          Select a recommended solution from the inspector before
-                          broad launch.
-                        </div>
-                      )}
-                    </div>
-                    {diagnosisReport.dataRequests.some(
-                      (request) => request.status === "needed",
-                    ) && (
-                      <div className="mt-3 rounded-xl bg-black/25 px-3 py-2 text-xs leading-5 text-foreground/45">
-                        Missing data:{" "}
-                        {diagnosisReport.dataRequests
-                          .filter((request) => request.status === "needed")
-                          .slice(0, 3)
-                          .map((request) => request.title)
-                          .join(", ")}
-                      </div>
-                    )}
-                  </div>
-                )}
-                <div className="grid gap-2 sm:grid-cols-3">
-                  <LibraryMetric label="Readiness" value={readiness?.score ?? 0} />
-                  <LibraryMetric label="Sources" value={sources.length} />
-                  <LibraryMetric
-                    label="Launch"
-                    value={activationPlan.consentApproved ? 1 : 0}
-                  />
-                </div>
-              </div>
-            ) : (
-              <div className="rounded-2xl border border-dashed border-border bg-black/20 p-4 text-sm leading-6 text-foreground/45">
-                Save the company and add at least website, FAQ, and pricing or policy
-                before analysis.
-              </div>
-            )}
-          </section>
         </div>
 
         <div className="border-t border-border p-5">
-          {activationPlan?.consentApproved ? (
-            <div className="flex items-center gap-3 rounded-2xl bg-primary/10 px-4 py-3 text-sm text-primary">
-              <img src="/illustrations/success-burst.png" alt="" className="size-8 shrink-0 object-contain" />
-              Launch approved. The agent can now operate from approved sources.
-            </div>
-          ) : activationPlan ? (
-            <button
-              type="button"
-              onClick={approveLaunch}
-              onMouseDown={(event) => {
-                event.preventDefault();
-                approveLaunch();
-              }}
-              onPointerDown={(event) => {
-                event.preventDefault();
-                approveLaunch();
-              }}
-              disabled={isWorking}
-              className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-full bg-primary text-sm font-semibold text-primary-foreground disabled:opacity-50"
-            >
-              {isWorking && <Loader2 className="size-4 animate-spin" />}
-              Approve launch consent
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={onClose}
-              className="h-11 w-full rounded-full border border-border text-sm font-medium text-foreground/70 hover:bg-foreground/8"
-            >
-              Continue testing
-            </button>
-          )}
+          <p className="mb-3 text-xs leading-5 text-foreground/40">
+            Analyzing and approving Nova's launch happens in the main workspace, once its
+            questions are answered -- this panel is just for editing what it already knows.
+          </p>
+          <button
+            type="button"
+            onClick={onClose}
+            className="h-11 w-full rounded-full border border-border text-sm font-medium text-foreground/70 hover:bg-foreground/8"
+          >
+            Close
+          </button>
         </div>
       </aside>
     </>
@@ -3946,16 +3968,10 @@ function CompanyOnboardingDrawer({
 
 function OnboardingStepBadge({ label, done }: { label: string; done: boolean }) {
   return (
-    <div
-      className={cn(
-        "flex min-h-9 items-center justify-center rounded-2xl border px-2 text-center text-[11px] font-medium",
-        done
-          ? "border-primary/25 bg-primary/10 text-primary"
-          : "border-border bg-black/20 text-foreground/38",
-      )}
-    >
+    <span className={cn("flex items-center gap-1.5", done ? "text-primary" : "text-foreground/38")}>
+      {done ? <Check className="size-3.5" /> : <span className="size-1.5 rounded-full bg-current" />}
       {label}
-    </div>
+    </span>
   );
 }
 
@@ -3999,12 +4015,12 @@ function SourceLibraryDrawer({
         onClick={onClose}
         aria-label="Close library overlay"
       />
-      <aside className="fixed inset-y-0 left-0 z-50 flex w-[28rem] max-w-[94vw] flex-col bg-card p-5 shadow-2xl shadow-black/40 md:left-[18rem]">
+      <aside className="fixed inset-y-0 left-0 z-50 flex w-[28rem] max-w-[94vw] flex-col overflow-y-auto bg-card p-5 shadow-2xl shadow-black/40 md:left-[18rem]">
         <div className="mb-6 flex items-start justify-between gap-4">
           <div>
             <div className="text-lg font-semibold">Knowledge library</div>
             <div className="mt-1 text-sm text-foreground/45">
-              {tenant?.name ?? "Client workspace"} - {sources.length} sources
+              {tenant?.name ?? "Your workspace"} - {sources.length} sources
             </div>
           </div>
           <button
@@ -4052,7 +4068,7 @@ function SourceLibraryDrawer({
               {learningReport.nextTrainingStep}
             </p>
             {learningReport.recommendedLabels.length > 0 && (
-              <div className="mt-3 rounded-2xl bg-black/20 p-3">
+              <div className="mt-3 rounded-2xl bg-muted p-3">
                 <div className="mb-2 text-xs uppercase tracking-[0.16em] text-foreground/35">
                   Suggested labels
                 </div>
@@ -4097,8 +4113,8 @@ function SourceLibraryDrawer({
         <div className="mt-6 min-h-0 flex-1 overflow-y-auto">
           {sources.length === 0 ? (
             <div className="rounded-3xl border border-dashed border-border bg-card p-5 text-sm leading-6 text-foreground/45">
-              No sources for this client yet. Add a website, FAQs, pricing, or
-              policies to make Jaabilv 2.0 answer from client context.
+              No sources yet. Add your website, FAQs, pricing, or
+              policies to make Jaabilv 2.0 answer from your business context.
             </div>
           ) : (
             <div className="space-y-2">
@@ -4175,17 +4191,17 @@ function TenantPanel({
       <div className="mb-3 flex items-center justify-between gap-3">
         <div className="min-w-0">
           <div className="truncate text-sm font-medium">
-            {tenant?.name ?? "Client workspace"}
+            {tenant?.name ?? "Your workspace"}
           </div>
           <div className="mt-1 truncate text-xs text-foreground/40">
-            {tenant?.websiteUrl ?? tenant?.industry ?? "Tenant-specific RAG"}
+            {tenant?.websiteUrl ?? tenant?.industry ?? "Your business's own knowledge base"}
           </div>
         </div>
         <button
           type="button"
           onClick={() => setIsCreating((value) => !value)}
           className="inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-foreground text-background hover:opacity-90"
-          aria-label="Create client"
+          aria-label="Add another business"
         >
           <Plus className="size-5" />
         </button>
@@ -4202,7 +4218,7 @@ function TenantPanel({
 
       {isCreating && (
         <div className="jaabili-pop-in mt-4 space-y-3">
-          <InputRow label="Client name" value={name} onChange={setName} />
+          <InputRow label="Business name" value={name} onChange={setName} />
           <InputRow label="Website" value={websiteUrl} onChange={setWebsiteUrl} />
           <InputRow label="Industry" value={industry} onChange={setIndustry} />
           <InputRow label="Email" value={contactEmail} onChange={setContactEmail} />
@@ -4213,7 +4229,7 @@ function TenantPanel({
             disabled={!name.trim()}
             className="h-10 w-full rounded-full bg-foreground text-sm font-medium text-background disabled:opacity-40"
           >
-            Create client
+            Add business
           </button>
         </div>
       )}
@@ -4239,6 +4255,78 @@ function SourceStatusBadge({
     >
       {value}
     </span>
+  );
+}
+
+function ReadinessGauge({ score, grade }: { score: number; grade: string }) {
+  const radius = 30;
+  const circumference = 2 * Math.PI * radius;
+  const clamped = Math.max(0, Math.min(100, score));
+  const offset = circumference - (clamped / 100) * circumference;
+  const colorClass =
+    clamped >= 80 ? "text-emerald-500" : clamped >= 55 ? "text-primary" : "text-destructive";
+
+  return (
+    <div className="relative flex size-20 shrink-0 items-center justify-center">
+      <svg className="size-20 -rotate-90" viewBox="0 0 68 68">
+        <circle cx="34" cy="34" r={radius} fill="none" stroke="currentColor" strokeWidth="6" className="text-foreground/10" />
+        <motion.circle
+          cx="34"
+          cy="34"
+          r={radius}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="6"
+          strokeLinecap="round"
+          className={colorClass}
+          style={{ strokeDasharray: circumference }}
+          initial={{ strokeDashoffset: circumference }}
+          animate={{ strokeDashoffset: offset }}
+          transition={{ duration: 0.8, ease: "easeOut", delay: 0.1 }}
+        />
+      </svg>
+      <div className="absolute flex flex-col items-center">
+        <span className="text-lg font-semibold text-foreground">{clamped}</span>
+        <span className="text-[10px] uppercase tracking-wide text-foreground/40">{grade}</span>
+      </div>
+    </div>
+  );
+}
+
+function SeverityBreakdown({ issues }: { issues: { severity: string }[] }) {
+  const order = ["critical", "high", "medium", "low"] as const;
+  const counts = order.map((sev) => issues.filter((i) => i.severity === sev).length);
+  const max = Math.max(1, ...counts);
+  const colors: Record<(typeof order)[number], string> = {
+    critical: "bg-destructive",
+    high: "bg-secondary",
+    medium: "bg-primary",
+    low: "bg-foreground/30",
+  };
+
+  if (issues.length === 0) return null;
+
+  return (
+    <div className="flex flex-1 items-end gap-2">
+      {order.map((sev, i) => {
+        const count = counts[i];
+        if (count === 0) return null;
+        const heightPct = Math.max(18, (count / max) * 100);
+        return (
+          <div key={sev} className="flex flex-col items-center gap-1">
+            <div className="flex h-10 w-6 items-end overflow-hidden rounded-full bg-foreground/8">
+              <motion.div
+                className={cn("w-full rounded-full", colors[sev])}
+                initial={{ height: 0 }}
+                animate={{ height: `${heightPct}%` }}
+                transition={{ duration: 0.5, ease: "easeOut", delay: 0.15 }}
+              />
+            </div>
+            <span className="text-[10px] text-foreground/45">{count}</span>
+          </div>
+        );
+      })}
+    </div>
   );
 }
 
@@ -4298,8 +4386,8 @@ function ModelSettingsDrawer({
       <aside className="fixed inset-y-0 right-0 z-50 w-[25rem] max-w-[94vw] overflow-y-auto bg-card p-5 shadow-2xl shadow-black/40">
         <div className="mb-7 flex items-start justify-between gap-4">
           <div>
-            <div className="text-lg font-semibold">Model settings</div>
-            <div className="mt-1 text-sm text-foreground/45">Jaabili Technologies - Agent Lab</div>
+            <div className="text-lg font-semibold">Agent settings</div>
+            <div className="mt-1 text-sm text-foreground/45">How Nova replies to your visitors</div>
           </div>
           <button
             type="button"
@@ -4311,23 +4399,9 @@ function ModelSettingsDrawer({
           </button>
         </div>
 
-        <div className="mb-5 text-sm text-foreground/55">
-          Runtime model
-          <div className="mt-2">
-            <DropdownSelect
-              value={selectedModel}
-              options={modelOptions.map((model) => ({
-                value: model.id,
-                label: model.label,
-                description: model.description,
-              }))}
-              onChange={onModelChange}
-            />
-          </div>
-        </div>
-
         <RangeSetting
-          label="Temperature"
+          label="Reply style"
+          hint="Predictable, on-script ↔ more creative"
           value={settings.temperature}
           min={0}
           max={1}
@@ -4335,7 +4409,8 @@ function ModelSettingsDrawer({
           onChange={(value) => update({ temperature: value })}
         />
         <RangeSetting
-          label="Retrieval chunks"
+          label="How thoroughly Nova searches your knowledge base"
+          hint="Fewer, faster lookups ↔ deeper search"
           value={settings.retrievalChunks}
           min={1}
           max={8}
@@ -4343,7 +4418,8 @@ function ModelSettingsDrawer({
           onChange={(value) => update({ retrievalChunks: value })}
         />
         <RangeSetting
-          label="Max response words"
+          label="Reply length"
+          hint="Short and to the point ↔ more detailed"
           value={settings.maxResponseWords}
           min={80}
           max={600}
@@ -4357,9 +4433,9 @@ function ModelSettingsDrawer({
           className="mt-2 flex w-full items-center justify-between rounded-2xl bg-card px-4 py-4 text-left text-sm"
         >
           <span>
-            <span className="block font-medium">Strict knowledge grounding</span>
+            <span className="block font-medium">Stay strictly on your content</span>
             <span className="mt-1 block text-xs text-foreground/40">
-              Prefer client sources before generic answers.
+              Nova prefers your uploaded sources over general knowledge.
             </span>
           </span>
           <span
@@ -4383,6 +4459,7 @@ function ModelSettingsDrawer({
 
 function RangeSetting({
   label,
+  hint,
   value,
   min,
   max,
@@ -4390,6 +4467,7 @@ function RangeSetting({
   onChange,
 }: {
   label: string;
+  hint?: string;
   value: number;
   min: number;
   max: number;
@@ -4398,10 +4476,7 @@ function RangeSetting({
 }) {
   return (
     <label className="mb-5 block text-sm text-foreground/55">
-      <span className="flex items-center justify-between">
-        <span>{label}</span>
-        <span className="text-foreground/80">{value}</span>
-      </span>
+      <span className="font-medium text-foreground/80">{label}</span>
       <input
         type="range"
         value={value}
@@ -4411,6 +4486,13 @@ function RangeSetting({
         onChange={(event) => onChange(Number(event.target.value))}
         className="mt-3 w-full accent-primary"
       />
+      {hint && (
+        <span className="mt-1 flex justify-between text-[11px] text-foreground/35">
+          {hint.split(" ↔ ").map((part, i) => (
+            <span key={i}>{part}</span>
+          ))}
+        </span>
+      )}
     </label>
   );
 }
@@ -4501,6 +4583,71 @@ function InputRow({
   );
 }
 
+// Busy business owners tap a preset far more readily than they'll type a
+// free-text answer -- used for fields where the real answer space is small
+// (industry, business model) so the client picks instead of writes. "Other"
+// reveals a text box only when none of the presets fit.
+function ChipSelectRow({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  options: string[];
+  onChange: (value: string) => void;
+}) {
+  const isCustom = value.trim() !== "" && !options.includes(value);
+  const [showCustom, setShowCustom] = useState(isCustom);
+
+  return (
+    <div className="mb-3 text-sm text-foreground/45">
+      {label}
+      <div className="mt-1 flex flex-wrap gap-1.5">
+        {options.map((option) => (
+          <button
+            key={option}
+            type="button"
+            onClick={() => {
+              setShowCustom(false);
+              onChange(option);
+            }}
+            className={cn(
+              "h-8 rounded-full border px-3 text-xs font-medium transition",
+              value === option
+                ? "border-primary/50 bg-primary/10 text-primary"
+                : "border-border bg-card text-foreground/65 hover:border-foreground/25",
+            )}
+          >
+            {option}
+          </button>
+        ))}
+        <button
+          type="button"
+          onClick={() => setShowCustom(true)}
+          className={cn(
+            "h-8 rounded-full border px-3 text-xs font-medium transition",
+            showCustom
+              ? "border-primary/50 bg-primary/10 text-primary"
+              : "border-border bg-card text-foreground/65 hover:border-foreground/25",
+          )}
+        >
+          Other
+        </button>
+      </div>
+      {showCustom && (
+        <input
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          placeholder={`Type your own ${label.toLowerCase()}`}
+          className="mt-2 h-10 w-full rounded-xl border border-border bg-card px-3 text-sm text-foreground outline-none focus:border-primary/50"
+        />
+      )}
+    </div>
+  );
+}
+
 function OnboardingFieldGroup({
   title,
   description,
@@ -4511,7 +4658,7 @@ function OnboardingFieldGroup({
   children: ReactNode;
 }) {
   return (
-    <div className="mb-4 rounded-2xl border border-border bg-black/16 p-3">
+    <div className="mb-4 rounded-2xl border border-border bg-muted/70 p-3">
       <div className="mb-3">
         <div className="text-xs font-semibold uppercase tracking-[0.14em] text-foreground/50">
           {title}
@@ -4527,10 +4674,12 @@ function TextAreaRow({
   label,
   value,
   onChange,
+  placeholder,
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
+  placeholder?: string;
 }) {
   return (
     <label className="mb-3 block text-sm text-foreground/45">
@@ -4539,7 +4688,8 @@ function TextAreaRow({
         value={value}
         rows={3}
         onChange={(event) => onChange(event.target.value)}
-        className="mt-1 w-full resize-none rounded-2xl border border-border bg-card px-4 py-3 text-foreground outline-none focus:border-primary/50"
+        placeholder={placeholder}
+        className="mt-1 w-full resize-none rounded-2xl border border-border bg-card px-4 py-3 text-sm text-foreground outline-none placeholder:text-foreground/30 focus:border-primary/50"
       />
     </label>
   );
@@ -4699,7 +4849,7 @@ function companyDraftToProfile(
   tenant: AgentTenant | null,
 ): CompanyProfileInput {
   return {
-    companyName: draft.companyName.trim() || tenant?.name || "Client company",
+    companyName: draft.companyName.trim() || tenant?.name || "Your business",
     websiteUrl: draft.websiteUrl.trim() || tenant?.websiteUrl || undefined,
     industry: draft.industry.trim() || tenant?.industry || undefined,
     targetCustomers:

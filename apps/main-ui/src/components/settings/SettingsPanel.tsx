@@ -1,7 +1,9 @@
-import { useState, type FormEvent } from "react";
+import { useMemo, useState, type FormEvent } from "react";
 import { AlertTriangle, Check, Loader2, ShieldCheck } from "lucide-react";
 import { Link } from "wouter";
 import { useAuth } from "@/lib/auth-context";
+import { readOnboarding } from "@/lib/onboarding";
+import { AGENT_CATALOG, PLAN_LIMITS } from "@/lib/agent-catalog";
 import { cn } from "@/lib/utils";
 
 export function SettingsPanel() {
@@ -16,10 +18,47 @@ export function SettingsPanel() {
         </p>
       </section>
 
+      <PlanSection />
       <ChangePasswordSection />
       <PrivacySection />
       <DangerZoneSection />
     </div>
+  );
+}
+
+function PlanSection() {
+  const { user } = useAuth();
+  const onboarding = useMemo(() => readOnboarding(user?.uid), [user?.uid]);
+  const selectedPlan = (onboarding?.plan ?? "free") as keyof typeof PLAN_LIMITS;
+  const plan = PLAN_LIMITS[selectedPlan] ?? PLAN_LIMITS.free;
+  const agentNames = (onboarding?.selectedAgents?.length
+    ? AGENT_CATALOG.filter((agent) => onboarding.selectedAgents!.includes(agent.id))
+    : [AGENT_CATALOG[0]]
+  ).map((agent) => agent.name);
+
+  const replyQuality =
+    selectedPlan === "free"
+      ? "Fast, standard-length replies"
+      : selectedPlan === "basic"
+        ? "Full model, standard-length replies"
+        : "Full model, longer and more thorough replies";
+
+  return (
+    <section className="rounded-2xl border border-border bg-card p-5">
+      <h3 className="text-sm font-semibold">Plan</h3>
+      <p className="mt-1 text-sm text-muted-foreground">
+        You're on the <span className="text-foreground">{plan.label}</span> plan with{" "}
+        {agentNames.join(", ")}.
+      </p>
+      <div className="mt-3 flex flex-wrap gap-x-6 gap-y-1 text-xs text-muted-foreground">
+        <span>Conversations: {plan.conversations}</span>
+        <span>Reply quality: {replyQuality}</span>
+      </div>
+      <p className="mt-3 text-xs text-muted-foreground">
+        Switching plans or adding another agent isn't self-serve yet -- email us and we'll sort it
+        out, rather than send you back through signup.
+      </p>
+    </section>
   );
 }
 

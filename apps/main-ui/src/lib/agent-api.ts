@@ -1,3 +1,5 @@
+import { getStoredSessionToken } from "./auth-context";
+
 const apiBase = (
   import.meta.env.VITE_API_BASE_URL ??
   (import.meta.env.DEV ? "http://localhost:3001" : "")
@@ -30,9 +32,13 @@ export async function createWebsiteSalesTenant(input: {
   contactPhone?: string;
   allowedWidgetOrigins?: string[];
 }): Promise<WebsiteSalesTenant> {
+  const sessionToken = getStoredSessionToken();
   const res = await fetch(`${apiBase}/api/agents/website-sales/tenants`, {
     method: "POST",
-    headers: { "content-type": "application/json" },
+    headers: {
+      "content-type": "application/json",
+      ...(sessionToken ? { authorization: `Bearer ${sessionToken}` } : {}),
+    },
     body: JSON.stringify(input),
   });
   return parseJsonOrThrow(res);

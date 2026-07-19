@@ -40,6 +40,21 @@ export const PLAN_LIMITS = {
   enterprise: { label: "Enterprise", agents: 999, conversations: "Unlimited" },
 };
 
+const PLAN_RANK: Record<keyof typeof PLAN_LIMITS, number> = {
+  free: 0,
+  basic: 1,
+  pro: 2,
+  enterprise: 3,
+};
+
+/** Whether `currentPlan` unlocks an agent that itself requires `agentPlan` -- true self-serve gate, not tied to whether the agent happens to be in the client's onboarding selection. */
+export function planUnlocksAgent(
+  currentPlan: keyof typeof PLAN_LIMITS,
+  agentPlan: keyof typeof PLAN_LIMITS,
+): boolean {
+  return PLAN_RANK[currentPlan] >= PLAN_RANK[agentPlan];
+}
+
 export const AGENT_CATALOG: ProductAgent[] = [
   {
     id: "website-sales",
@@ -66,7 +81,7 @@ export const AGENT_CATALOG: ProductAgent[] = [
     plan: "basic",
     icon: MarketingAgentIcon,
     illustrationSrc: "/illustrations/agent-mark-marketing.png",
-    tint: "bg-fuchsia-500/12 text-fuchsia-500",
+    tint: "bg-foreground/8 text-foreground/70",
     panel: "marketing",
   },
   {
@@ -80,7 +95,7 @@ export const AGENT_CATALOG: ProductAgent[] = [
     plan: "basic",
     icon: MessagingAgentIcon,
     illustrationSrc: "/illustrations/agent-mark-whatsapp.png",
-    tint: "bg-emerald-500/12 text-emerald-500",
+    tint: "bg-foreground/8 text-foreground/70",
     panel: "whatsapp",
   },
   {
@@ -94,7 +109,7 @@ export const AGENT_CATALOG: ProductAgent[] = [
     plan: "basic",
     icon: FollowUpAgentIcon,
     illustrationSrc: "/illustrations/agent-mark-follow-up.png",
-    tint: "bg-amber-500/12 text-amber-500",
+    tint: "bg-foreground/8 text-foreground/70",
     panel: null,
   },
   {
@@ -108,7 +123,7 @@ export const AGENT_CATALOG: ProductAgent[] = [
     plan: "pro",
     icon: SupportAgentIcon,
     illustrationSrc: "/illustrations/agent-mark-support.png",
-    tint: "bg-sky-500/12 text-sky-500",
+    tint: "bg-foreground/8 text-foreground/70",
     panel: null,
   },
   {
@@ -122,7 +137,7 @@ export const AGENT_CATALOG: ProductAgent[] = [
     plan: "pro",
     icon: OpsSummaryAgentIcon,
     illustrationSrc: "/illustrations/agent-mark-ops-summary.png",
-    tint: "bg-slate-500/12 text-slate-500",
+    tint: "bg-foreground/8 text-foreground/70",
     panel: null,
   },
   {
@@ -136,7 +151,7 @@ export const AGENT_CATALOG: ProductAgent[] = [
     plan: "enterprise",
     icon: ContentStudioAgentIcon,
     illustrationSrc: "/illustrations/agent-mark-content-studio.png",
-    tint: "bg-violet-500/12 text-violet-500",
+    tint: "bg-foreground/8 text-foreground/70",
     panel: null,
   },
 ];

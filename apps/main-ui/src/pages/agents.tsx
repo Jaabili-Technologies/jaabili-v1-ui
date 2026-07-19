@@ -36,7 +36,7 @@ export default function Agents() {
       capabilities: ["FAQ Answers From Your Content", "Lead Capture & Qualification", "Instant Owner Notifications", "Full Conversation History"],
       channels: ["Website"],
       color: "from-primary/20 to-transparent",
-      href: "/agents/website-sales",
+      href: "/get-started",
       action: "Test Nova"
     }
   ];

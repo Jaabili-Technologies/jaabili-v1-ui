@@ -11,7 +11,7 @@ import {
   WizardTurnBubble,
   WizardYesNoPrompt,
 } from "@/components/ui/wizard-kit";
-import { listAgentTenants, type AgentTenant } from "@/lib/website-sales-agent-api";
+import { listMyWorkspaces, type AgentTenant } from "@/lib/website-sales-agent-api";
 import {
   answerMarketingDataRequest,
   approveMarketingActivation,
@@ -37,7 +37,7 @@ export default function MarketingAgentPage() {
   const selectedTenant = tenants.find((tenant) => tenant.id === selectedTenantId) ?? tenants[0] ?? null;
 
   useEffect(() => {
-    listAgentTenants().then(setTenants).catch(() => setTenants([]));
+    listMyWorkspaces().then(setTenants).catch(() => setTenants([]));
   }, []);
 
   useEffect(() => {

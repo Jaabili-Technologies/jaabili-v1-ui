@@ -412,6 +412,7 @@ export interface WebsiteSalesDiagnosisReport {
     sourceCount: number;
     leadCount: number;
   };
+  readiness: { score: number; grade: string; stage: string; readyToPilot: boolean };
   issues: WebsiteSalesDiagnosisIssue[];
   pinpointedFindings: string[];
   dataRequests: WebsiteSalesDataRequest[];
@@ -481,6 +482,17 @@ const apiBase = (
 
 export const websiteSalesApiBase = apiBase;
 
+// Distinguishable from a normal request failure so the UI can show "please
+// sign in again" instead of leaving a panel stuck on a loading state
+// forever -- a plain Error with a generic message looked identical to any
+// other failed fetch and got silently swallowed by Promise.allSettled.
+export class UnauthorizedError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "UnauthorizedError";
+  }
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   // Attached whenever a logged-in user's session exists -- required for
   // tenant-scoped dashboard routes (leads, reports, tickets) now gated by
@@ -506,6 +518,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
       data && typeof data === "object" && "error" in data && data.error
         ? data.error
         : `Request failed with ${response.status}`;
+    if (response.status === 401) throw new UnauthorizedError(message);
     throw new Error(message);
   }
 
@@ -696,6 +709,39 @@ export function listTenantKnowledgeSources() {
 
 export function listAgentTenants() {
   return request<AgentTenant[]>("/agents/website-sales/tenants");
+}
+
+interface WorkspaceSummary {
+  tenantId: string;
+  name: string;
+  role: string;
+  subscriptionPlan: AgentTenant["subscriptionPlan"];
+}
+
+// listAgentTenants requires Jaabili-admin identity -- it lists every
+// business on the platform, not just the caller's own. The dashboard shell
+// only ever needs the signed-in user's own workspace(s), so it belongs on
+// this endpoint (session-token gated, same as everywhere else a normal
+// user calls in) rather than the admin one, which every regular account
+// silently 403'd against.
+export async function listMyWorkspaces(): Promise<AgentTenant[]> {
+  const workspaces = await request<WorkspaceSummary[]>("/auth/me/workspaces");
+  return workspaces.map((w) => ({
+    id: w.tenantId,
+    name: w.name,
+    websiteUrl: null,
+    industry: null,
+    contactEmail: null,
+    contactPhone: null,
+    widgetPublicKey: null,
+    allowedWidgetOrigins: [],
+    activeAgentProfile: "website-sales",
+    subscriptionPlan: w.subscriptionPlan,
+    subscriptionStatus: "active",
+    whatsappPhoneNumberId: null,
+    createdAt: "",
+    updatedAt: "",
+  }));
 }
 
 export function createAgentTenant(input: {

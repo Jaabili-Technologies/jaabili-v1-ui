@@ -1,17 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "wouter";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowRight,
   ArrowUpRight,
   BarChart3,
-  Bell,
   Check,
+  CircleHelp,
   ChevronDown,
   FileText,
   Home,
   LogOut,
   MessageCircle,
-  Search,
   Settings,
   Users,
   Workflow,
@@ -20,16 +20,45 @@ import { cn } from "@/lib/utils";
 import logo from "@assets/jaabili-logo-dark.png";
 import { useAuth } from "@/lib/auth-context";
 import { readOnboarding } from "@/lib/onboarding";
-import { AGENT_CATALOG, PLAN_LIMITS, type ProductAgent } from "@/lib/agent-catalog";
-import { getNovaAgentStatus, NovaWorkspacePanel } from "@/components/agents/NovaWorkspacePanel";
-import { getMarketingAgentStatus, MarketingWorkspacePanel } from "@/pages/marketing-agent";
-import { WhatsAppWorkspacePanel } from "@/pages/whatsapp-agent";
-import { listAgentTenants, type AgentTenant } from "@/lib/website-sales-agent-api";
+import { AGENT_CATALOG, PLAN_LIMITS, planUnlocksAgent, type ProductAgent } from "@/lib/agent-catalog";
+import { getNovaAgentStatus } from "@/components/agents/NovaWorkspacePanel";
+import { getMarketingAgentStatus } from "@/pages/marketing-agent";
+import { listMyWorkspaces, type AgentTenant } from "@/lib/website-sales-agent-api";
 import { SettingsPanel } from "@/components/settings/SettingsPanel";
 
 // Shared across every agent page: one "current client" concept for the
 // whole workspace, not a per-agent selection.
 const TENANT_STORAGE_KEY = "jaabili.websiteSales.tenantId";
+const TOUR_STORAGE_PREFIX = "jaabili.dashboard.tourSeen.";
+
+const TOUR_STEPS = [
+  {
+    title: "This is your home base",
+    body: "Each agent you picked shows up under \"My agents\" on the left. You'll spend most of your time inside Nova, your website sales agent.",
+  },
+  {
+    title: "Nova asks, you answer",
+    body: "Open Nova and it asks you one question at a time about your business — no forms to fill in. Don't have something on hand? Skip it and come back later.",
+  },
+  {
+    title: "Test before anyone sees it",
+    body: "Once Nova has enough to work with, use the visitor simulator inside its workspace to ask it real buyer questions yourself, before it ever talks to a real visitor.",
+  },
+  {
+    title: "You approve before it goes live",
+    body: "Nothing reaches your website until you review Nova's plan and approve the launch. You're always in control of when it starts.",
+  },
+] as const;
+
+function hasSeenTour(uid: string | undefined): boolean {
+  if (!uid || typeof window === "undefined") return true;
+  return window.localStorage.getItem(`${TOUR_STORAGE_PREFIX}${uid}`) === "1";
+}
+
+function markTourSeen(uid: string | undefined): void {
+  if (!uid || typeof window === "undefined") return;
+  window.localStorage.setItem(`${TOUR_STORAGE_PREFIX}${uid}`, "1");
+}
 
 const comingSoonNavItems = [
   { icon: MessageCircle, label: "Conversations" },
@@ -59,9 +88,14 @@ export default function Dashboard() {
     () => window.localStorage.getItem(TENANT_STORAGE_KEY) ?? "jaabili-default",
   );
   const [agentStatuses, setAgentStatuses] = useState<Record<string, AgentRailStatus>>({});
+  const [isTourOpen, setIsTourOpen] = useState(false);
 
   useEffect(() => {
-    listAgentTenants().then(setTenants).catch(() => setTenants([]));
+    if (!hasSeenTour(user?.uid)) setIsTourOpen(true);
+  }, [user?.uid]);
+
+  useEffect(() => {
+    listMyWorkspaces().then(setTenants).catch(() => setTenants([]));
   }, []);
 
   useEffect(() => {
@@ -103,12 +137,25 @@ export default function Dashboard() {
   const activeAgent = availableAgents.find((agent) => agent.id === activeView) ?? null;
   const selectedTenant = tenants.find((tenant) => tenant.id === selectedTenantId) ?? tenants[0] ?? null;
 
+  // Setup is one continuous conversation with Nova, not four separate
+  // checkboxes a client fills in manually -- these read off the same
+  // percent Nova's own wizard already tracks (agentStatuses), so this list
+  // reflects what's actually done instead of always showing "not done."
+  const websiteSetupPercent = websiteAgent ? (agentStatuses[websiteAgent.id]?.percent ?? 0) : 0;
+  const websiteSetupLive = websiteAgent ? (agentStatuses[websiteAgent.id]?.isLive ?? false) : false;
   const nextSteps = [
     { label: "Select plan and agents", done: true, href: "/onboarding" },
-    { label: "Add company profile", done: false, href: websiteAgent?.href ?? "/onboarding" },
-    { label: "Add website, FAQs, and pricing", done: false, href: websiteAgent?.href ?? "/onboarding" },
-    { label: "Generate the activation analysis", done: false, href: websiteAgent?.href ?? "/onboarding" },
-    { label: "Approve launch and go live", done: false, href: websiteAgent?.href ?? "/onboarding" },
+    {
+      label: "Answer Nova's setup questions",
+      done: websiteSetupPercent >= 50,
+      href: websiteAgent?.href ?? "/onboarding",
+    },
+    {
+      label: "Generate the activation analysis",
+      done: websiteSetupPercent >= 100,
+      href: websiteAgent?.href ?? "/onboarding",
+    },
+    { label: "Approve launch and go live", done: websiteSetupLive, href: websiteAgent?.href ?? "/onboarding" },
   ];
 
   return (
@@ -150,23 +197,20 @@ export default function Dashboard() {
           <div className="mt-5 mb-1.5 px-2.5 text-xs font-medium text-muted-foreground/70">
             My agents
           </div>
-          {availableAgents.map((agent) => {
+          {AGENT_CATALOG.map((agent) => {
             const Icon = agent.icon;
             const status = agentStatuses[agent.id];
-            return (
-              <button
-                key={agent.id}
-                type="button"
-                disabled={agent.status === "locked"}
-                onClick={() => agent.panel && setActiveView(agent.id)}
-                className={cn(
-                  "flex h-11 w-full items-center gap-2.5 rounded-lg px-2.5 text-sm transition-colors",
-                  activeView === agent.id
-                    ? "bg-muted font-medium text-foreground"
-                    : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                  agent.status === "locked" && "cursor-not-allowed opacity-50",
-                )}
-              >
+            const inDevelopment = agent.status === "locked";
+            const planLocked = !inDevelopment && !planUnlocksAgent(selectedPlan, agent.plan);
+            const rowClass = cn(
+              "flex h-11 w-full items-center gap-2.5 rounded-lg px-2.5 text-sm transition-colors",
+              activeView === agent.id
+                ? "bg-muted font-medium text-foreground"
+                : "text-muted-foreground hover:bg-muted hover:text-foreground",
+              (inDevelopment || planLocked) && "opacity-50",
+            );
+            const content = (
+              <>
                 <Icon className="h-4 w-4 shrink-0" />
                 <span className="min-w-0 flex-1 truncate text-left">{agent.name}</span>
                 {status?.isLive ? (
@@ -175,7 +219,45 @@ export default function Dashboard() {
                   </span>
                 ) : status && agent.panel ? (
                   <span className="shrink-0 text-[10px] text-muted-foreground/70">{status.percent}%</span>
+                ) : inDevelopment ? (
+                  <span className="shrink-0 text-[10px] text-muted-foreground/70">Soon</span>
+                ) : planLocked ? (
+                  <span className="shrink-0 text-[10px] text-muted-foreground/70">Locked</span>
                 ) : null}
+              </>
+            );
+
+            // Nova has one real workspace, the full page at agent.href --
+            // this used to also render a second, lighter-weight copy of the
+            // same workspace inline here, so the UI looked different
+            // depending on which of the two ways you got to it. Every
+            // agent link now goes to its one real workspace. Plan-locked
+            // agents route to Settings (the real, honest "how to upgrade"
+            // story) instead of their workspace page, which has no handling
+            // for the plan_upgrade_required error and would just break
+            // silently for an account that isn't unlocked yet.
+            if (planLocked) {
+              return (
+                <button
+                  key={agent.id}
+                  type="button"
+                  onClick={() => setActiveView("settings")}
+                  className={rowClass}
+                >
+                  {content}
+                </button>
+              );
+            }
+            if (!inDevelopment && agent.href) {
+              return (
+                <Link key={agent.id} href={agent.href} className={rowClass}>
+                  {content}
+                </Link>
+              );
+            }
+            return (
+              <button key={agent.id} type="button" disabled className={rowClass}>
+                {content}
               </button>
             );
           })}
@@ -221,17 +303,7 @@ export default function Dashboard() {
             {activeView === "home" ? "Home" : activeView === "settings" ? "Settings" : activeAgent?.name ?? "Home"}
           </h1>
           {activeView === "home" || activeView === "settings" ? (
-            <div className="hidden min-w-0 flex-1 justify-center lg:flex">
-              {activeView === "home" && (
-                <div className="flex h-9 w-full max-w-md items-center gap-2 rounded-lg border border-border bg-muted/60 px-3">
-                  <Search className="h-3.5 w-3.5 text-muted-foreground" />
-                  <input
-                    className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
-                    placeholder="Search"
-                  />
-                </div>
-              )}
-            </div>
+            <div className="hidden min-w-0 flex-1 lg:flex" />
           ) : (
             <TenantSwitcher
               tenants={tenants}
@@ -241,10 +313,11 @@ export default function Dashboard() {
           )}
           <button
             type="button"
-            aria-label="Notifications"
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
+            onClick={() => setIsTourOpen(true)}
+            className="flex h-9 shrink-0 items-center gap-1.5 rounded-md px-2.5 text-sm text-muted-foreground hover:bg-muted hover:text-foreground"
           >
-            <Bell className="h-4 w-4" />
+            <CircleHelp className="h-4 w-4" />
+            <span className="hidden sm:inline">How this works</span>
           </button>
         </header>
 
@@ -276,18 +349,26 @@ export default function Dashboard() {
               </div>
 
               <div>
-                <div className="mb-4 flex items-end justify-between">
-                  <h3 className="text-base font-semibold">My agents</h3>
-                  <Link href="/onboarding" className="text-sm text-muted-foreground hover:text-foreground">
-                    Change selection
-                  </Link>
+                <div className="mb-1 flex items-end justify-between">
+                  <h3 className="text-base font-semibold">Agents</h3>
+                  <button
+                    type="button"
+                    onClick={() => setActiveView("settings")}
+                    className="text-sm text-muted-foreground hover:text-foreground"
+                  >
+                    Manage plan
+                  </button>
                 </div>
+                <p className="mb-4 text-sm text-muted-foreground">
+                  Every agent, what it does, and whether your plan unlocks it yet.
+                </p>
                 <div className="flex flex-wrap gap-3">
-                  {availableAgents.map((agent) => (
+                  {AGENT_CATALOG.map((agent) => (
                     <AgentCard
                       key={agent.id}
                       agent={agent}
-                      onOpenPanel={agent.panel ? () => setActiveView(agent.id) : undefined}
+                      currentPlan={selectedPlan}
+                      onOpenSettings={() => setActiveView("settings")}
                     />
                   ))}
                 </div>
@@ -299,8 +380,19 @@ export default function Dashboard() {
                   Complete these before sending real traffic to Nova.
                 </p>
                 <div className="divide-y divide-border rounded-xl border border-border">
-                  {nextSteps.map((step) => (
-                    <NextStepRow key={step.label} {...step} />
+                  {nextSteps.map((step, index) => (
+                    <NextStepRow
+                      key={step.label}
+                      {...step}
+                      // These steps all happen inside the same Nova
+                      // workspace conversation, not separate destinations --
+                      // making every unfinished row clickable made it look
+                      // like each one led somewhere different when they all
+                      // opened the identical page. Only the next actual
+                      // thing to do is a link; steps after it are just
+                      // status, not yet reachable.
+                      isNext={!step.done && nextSteps.slice(0, index).every((s) => s.done)}
+                    />
                   ))}
                 </div>
               </div>
@@ -310,25 +402,110 @@ export default function Dashboard() {
           <section className="min-h-0 flex-1 overflow-y-auto px-4 py-8">
             <SettingsPanel />
           </section>
-        ) : (
-          <section className="min-h-0 flex-1 overflow-y-auto px-4 py-8">
-            {activeAgent?.panel === "website-sales" && (
-              <NovaWorkspacePanel tenantId={selectedTenantId} />
-            )}
-            {activeAgent?.panel === "marketing" && (
-              <MarketingWorkspacePanel tenantId={selectedTenantId} />
-            )}
-            {activeAgent?.panel === "whatsapp" && (
-              <WhatsAppWorkspacePanel
-                tenantId={selectedTenantId}
-                tenant={tenants.find((tenant) => tenant.id === selectedTenantId) ?? null}
-                onTenantUpdated={setTenants}
-              />
-            )}
-          </section>
-        )}
+        ) : null}
       </main>
+
+      <AnimatePresence>
+        {isTourOpen && (
+          <WalkthroughModal
+            onClose={() => {
+              markTourSeen(user?.uid);
+              setIsTourOpen(false);
+            }}
+          />
+        )}
+      </AnimatePresence>
     </div>
+  );
+}
+
+function WalkthroughModal({ onClose }: { onClose: () => void }) {
+  const [stepIndex, setStepIndex] = useState(0);
+  const [direction, setDirection] = useState(1);
+  const step = TOUR_STEPS[stepIndex];
+  const isLast = stepIndex === TOUR_STEPS.length - 1;
+
+  const goNext = () => {
+    if (isLast) return onClose();
+    setDirection(1);
+    setStepIndex((index) => index + 1);
+  };
+  const goBack = () => {
+    if (stepIndex === 0) return;
+    setDirection(-1);
+    setStepIndex((index) => index - 1);
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+    >
+      <motion.div
+        initial={{ opacity: 0, y: 16, scale: 0.97 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ type: "spring", stiffness: 340, damping: 28 }}
+        className="w-full max-w-sm overflow-hidden rounded-2xl border border-border bg-card p-6 shadow-2xl"
+      >
+        <div className="mb-5 flex gap-1.5">
+          {TOUR_STEPS.map((_, index) => (
+            <span key={index} className="h-1 flex-1 overflow-hidden rounded-full bg-border">
+              <motion.span
+                className="block h-full bg-primary"
+                initial={false}
+                animate={{ width: index <= stepIndex ? "100%" : "0%" }}
+                transition={{ duration: 0.35, ease: "easeOut" }}
+              />
+            </span>
+          ))}
+        </div>
+
+        <div className="relative min-h-[7rem] overflow-hidden">
+          <AnimatePresence mode="wait" custom={direction} initial={false}>
+            <motion.div
+              key={stepIndex}
+              custom={direction}
+              initial={{ opacity: 0, x: 24 * direction }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -24 * direction }}
+              transition={{ duration: 0.25, ease: "easeOut" }}
+            >
+              <h3 className="text-lg font-semibold">{step.title}</h3>
+              <p className="mt-2 text-sm leading-6 text-muted-foreground">{step.body}</p>
+            </motion.div>
+          </AnimatePresence>
+        </div>
+
+        <div className="mt-6 flex items-center justify-between">
+          {stepIndex === 0 ? (
+            <button
+              type="button"
+              onClick={onClose}
+              className="text-sm text-muted-foreground hover:text-foreground"
+            >
+              Skip
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={goBack}
+              className="text-sm text-muted-foreground hover:text-foreground"
+            >
+              Back
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={goNext}
+            className="inline-flex h-9 items-center rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition hover:opacity-90"
+          >
+            {isLast ? "Got it" : "Next"}
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
   );
 }
 
@@ -354,7 +531,7 @@ function TenantSwitcher({
         onClick={() => setIsOpen((value) => !value)}
         className="flex items-center gap-2 rounded-full border border-border bg-foreground/[0.03] px-3 py-2 text-sm text-foreground/75 hover:bg-foreground/8"
       >
-        {selectedTenant?.name ?? "Select client"}
+        {selectedTenant?.name ?? "Select business"}
         <ChevronDown className="size-3.5" />
       </button>
       {isOpen && (
@@ -392,10 +569,12 @@ function NextStepRow({
   label,
   done,
   href,
+  isNext,
 }: {
   label: string;
   done: boolean;
   href: string;
+  isNext: boolean;
 }) {
   const content = (
     <div className="flex items-center gap-3 px-4 py-3">
@@ -409,14 +588,19 @@ function NextStepRow({
       >
         <Check className="h-3 w-3" />
       </div>
-      <span className={cn("flex-1 text-sm", done ? "text-muted-foreground line-through" : "text-foreground")}>
+      <span
+        className={cn(
+          "flex-1 text-sm",
+          done ? "text-muted-foreground line-through" : isNext ? "text-foreground" : "text-muted-foreground",
+        )}
+      >
         {label}
       </span>
-      {!done && <ArrowUpRight className="h-4 w-4 text-muted-foreground" />}
+      {isNext && <ArrowUpRight className="h-4 w-4 text-muted-foreground" />}
     </div>
   );
 
-  if (done) {
+  if (!isNext) {
     return content;
   }
 
@@ -429,45 +613,71 @@ function NextStepRow({
 
 function AgentCard({
   agent,
-  onOpenPanel,
+  currentPlan,
+  onOpenSettings,
 }: {
   agent: ProductAgent;
-  onOpenPanel?: () => void;
+  currentPlan: keyof typeof PLAN_LIMITS;
+  onOpenSettings: () => void;
 }) {
-  const locked = agent.status === "locked";
+  // agent.illustrationSrc is a large, moody hero-style image (built for
+  // marketing pages) -- cropped into a 36px card icon with object-cover it
+  // just shows a blurry corner of gradient, unrecognizable as an icon. The
+  // crisp vector marks in agent-icons.tsx were built for exactly this slot.
+  const Icon = agent.icon;
+  const inDevelopment = agent.status === "locked";
+  const planLocked = !inDevelopment && !planUnlocksAgent(currentPlan, agent.plan);
 
   return (
     <div className="flex w-full max-w-xs flex-col gap-3 rounded-xl border border-border p-4">
       <div className="flex items-center gap-2.5">
-        <div className={cn("flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg", agent.tint)}>
-          <img src={agent.illustrationSrc} alt="" className="h-full w-full object-cover" />
+        <div className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-lg", agent.tint)}>
+          <Icon className="h-5 w-5" />
         </div>
-        <div className="min-w-0">
-          <div className="truncate text-sm font-semibold">{agent.name}</div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5">
+            <span className="truncate text-sm font-semibold">{agent.name}</span>
+            {inDevelopment && (
+              <span className="shrink-0 rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+                In development
+              </span>
+            )}
+          </div>
           <div className="truncate text-xs text-muted-foreground">{agent.category}</div>
         </div>
       </div>
       <p className="flex-1 text-sm leading-6 text-muted-foreground">{agent.description}</p>
-      {onOpenPanel ? (
+      {planLocked && (
+        <p className="text-xs text-muted-foreground">
+          Needs the {PLAN_LIMITS[agent.plan].label} plan or higher.
+        </p>
+      )}
+      {inDevelopment ? (
         <button
           type="button"
-          onClick={onOpenPanel}
-          className="inline-flex h-9 w-full items-center justify-center gap-1.5 rounded-lg bg-foreground text-sm font-medium text-background transition-colors hover:opacity-90"
+          disabled
+          className="inline-flex h-9 w-full cursor-not-allowed items-center justify-center gap-1.5 rounded-lg border border-border text-sm font-medium text-muted-foreground"
         >
-          Open agent
+          Not built yet
+        </button>
+      ) : planLocked ? (
+        // Its workspace page has no handling for the plan_upgrade_required
+        // error and would just break silently for an account that isn't
+        // unlocked yet -- Settings has the real, honest upgrade story.
+        <button
+          type="button"
+          onClick={onOpenSettings}
+          className="inline-flex h-9 w-full items-center justify-center gap-1.5 rounded-lg border border-border text-sm font-medium text-muted-foreground transition-colors hover:bg-muted"
+        >
+          Upgrade to unlock
           <ArrowRight className="h-3.5 w-3.5" />
         </button>
       ) : (
         <Link
           href={agent.href}
-          className={cn(
-            "inline-flex h-9 w-full items-center justify-center gap-1.5 rounded-lg text-sm font-medium transition-colors",
-            locked
-              ? "border border-border text-muted-foreground hover:bg-muted"
-              : "bg-foreground text-background hover:opacity-90",
-          )}
+          className="inline-flex h-9 w-full items-center justify-center gap-1.5 rounded-lg bg-foreground text-sm font-medium text-background transition-colors hover:opacity-90"
         >
-          {locked ? "Discuss upgrade" : "Open agent"}
+          Open agent
           <ArrowRight className="h-3.5 w-3.5" />
         </Link>
       )}

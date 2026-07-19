@@ -4,7 +4,7 @@ import { ArrowLeft, Check, ChevronDown, Loader2, MessageCircle } from "lucide-re
 import { MessagingAgentIcon } from "@/components/ui/agent-icons";
 import {
   connectAgentTenantWhatsApp,
-  listAgentTenants,
+  listMyWorkspaces,
   listWebsiteSalesAgentConversations,
   type AgentTenant,
   type ConversationRecord,
@@ -25,7 +25,7 @@ export default function WhatsAppAgentPage() {
   const selectedTenant = tenants.find((tenant) => tenant.id === selectedTenantId) ?? tenants[0] ?? null;
 
   useEffect(() => {
-    listAgentTenants().then(setTenants).catch(() => setTenants([]));
+    listMyWorkspaces().then(setTenants).catch(() => setTenants([]));
   }, []);
 
   useEffect(() => {

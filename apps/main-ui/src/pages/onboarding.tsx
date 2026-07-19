@@ -424,6 +424,7 @@ export default function Onboarding() {
   } | null> | null>(null);
   const [draftConsent, setDraftConsent] = useState(false);
   const [termsConsent, setTermsConsent] = useState(false);
+  const [provisionError, setProvisionError] = useState<string | null>(null);
 
   const firstName =
     user?.displayName?.split(" ")[0] || user?.email?.split("@")[0] || "there";
@@ -647,8 +648,30 @@ export default function Onboarding() {
   };
 
   const persistAndGoDashboard = async () => {
-    const provision =
+    let provision =
       activeType === "business" ? await (provisionRef.current ?? Promise.resolve(null)) : null;
+
+    // provisionBusinessTenant swallows its own errors and resolves null on
+    // failure -- proceeding to the dashboard anyway used to leave the
+    // account on an empty auto-provisioned workspace with none of what was
+    // just entered, no error shown, nothing to retry. A business signup
+    // with no created tenant is a hard stop, not a silent partial success.
+    // provisionRef is memoized, so a plain retry would just re-await the
+    // same failed (null) result -- clear it and try again for real.
+    if (activeType === "business" && !provision) {
+      provisionRef.current = null;
+      setProvisionError(null);
+      const retry = provisionBusinessTenant();
+      provisionRef.current = retry;
+      provision = await retry;
+      if (!provision) {
+        setProvisionError(
+          "We couldn't create your workspace just now. Please try again -- nothing you entered has been lost.",
+        );
+        return;
+      }
+    }
+
     persistWorkspace(provision);
 
     if (paymentMode === "gateway") {
@@ -786,6 +809,12 @@ export default function Onboarding() {
               )}
             </motion.div>
           </AnimatePresence>
+
+          {step === 7 && provisionError && (
+            <div className="mt-6 rounded-2xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+              {provisionError}
+            </div>
+          )}
 
           {step !== 6 && (
             <div className="relative mt-8 flex items-center justify-between border-t border-foreground/12 pt-5">

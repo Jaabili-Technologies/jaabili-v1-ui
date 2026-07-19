@@ -41,7 +41,6 @@ const FULLSCREEN_ROUTES = [
   "/onboarding",
   "/dashboard",
   "/dashboard/agents/website-sales",
-  "/agents/website-sales",
   "/dashboard/agents/marketing",
   "/dashboard/agents/whatsapp",
   "/terms",
@@ -107,7 +106,6 @@ function Router() {
             <Route path="/dashboard/agents/website-sales">
               <ProtectedRoute component={WebsiteSalesAgentPage} />
             </Route>
-            <Route path="/agents/website-sales" component={WebsiteSalesAgentPage} />
             <Route path="/dashboard/agents/marketing">
               <ProtectedRoute component={MarketingAgentPage} />
             </Route>
