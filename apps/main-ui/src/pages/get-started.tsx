@@ -42,12 +42,12 @@ export default function GetStarted() {
       <AuthVisualPanel
         accent="teal"
         eyebrow="Secure workspace"
-        title="The workspace for autonomous growth."
-        subtitle="Design, deploy, and manage your AI agents from one unified command center."
+        title="Set up an agent, review what it plans to do, approve it."
+        subtitle="No dashboard literacy required — it's a conversation, and nothing goes live without your OK."
         items={[
-          "Deploy your first agent in minutes",
+          "Set up your first agent in a short conversation",
           "Every lead captured and qualified automatically",
-          "Your data stays isolated to your workspace",
+          "Your data stays in your own workspace",
         ]}
       />
 

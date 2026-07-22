@@ -46,11 +46,11 @@ export default function SignUp() {
       <AuthVisualPanel
         accent="violet"
         eyebrow="Create workspace"
-        title="Create your intelligent workspace."
-        subtitle="Set up Nova, your website sales agent, and start capturing qualified leads today."
+        title="Set up Nova. Approve what it plans to do. Go live."
+        subtitle="A short setup conversation, then you review and approve before anything reaches a real visitor."
         items={[
-          "Free 14-day trial — no card required",
-          "Your data stays isolated to your workspace",
+          "14-day free trial — no card required",
+          "Your data stays in your own workspace",
           "Cancel anytime, your data stays yours",
         ]}
       />
