@@ -9,10 +9,7 @@ import {
 import { Link } from "wouter";
 import {
   ChevronDown,
-  CircleDollarSign,
-  Clock3,
   FileText,
-  History,
   LayoutGrid,
   Loader2,
   Menu,
@@ -42,7 +39,6 @@ import { useAuth } from "@/lib/auth-context";
 import { readOnboarding } from "@/lib/onboarding";
 import { AGENT_CATALOG } from "@/lib/agent-catalog";
 import {
-  agentOptions,
   labelOptions,
   modelOptions,
   promptMessages,
@@ -2956,188 +2952,6 @@ function InspectorDrawer({
   );
 }
 
-function DiagnosisWizardDrawer({
-  isOpen,
-  tenantId,
-  diagnosisReport,
-  activationPlan,
-  isActivationWorking,
-  onClose,
-  onReportUpdate,
-  onRefreshAll,
-  onApproveActivation,
-}: {
-  isOpen: boolean;
-  tenantId: string;
-  diagnosisReport: WebsiteSalesDiagnosisReport | null;
-  activationPlan: WebsiteSalesActivationPlan | null;
-  isActivationWorking: boolean;
-  onClose: () => void;
-  onReportUpdate: (report: WebsiteSalesDiagnosisReport) => void;
-  onRefreshAll: () => void;
-  onApproveActivation: (planId: string) => void;
-}) {
-  const [draftText, setDraftText] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [wizardError, setWizardError] = useState<string | null>(null);
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const wizard = diagnosisReport?.wizard ?? null;
-
-  useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
-  }, [wizard?.turnHistory.length]);
-
-  if (!isOpen) {
-    return null;
-  }
-
-  const submitAnswer = async (mode: WebsiteSalesDataAnswerMode, answerText?: string) => {
-    if (!wizard?.currentQuestion) return;
-    setIsSubmitting(true);
-    setWizardError(null);
-    try {
-      const { report } = await answerWebsiteSalesDataRequest({
-        tenantId,
-        dataRequestId: wizard.currentQuestion.dataRequestId,
-        mode,
-        answerText,
-      });
-      onReportUpdate(report);
-      setDraftText("");
-      if (report.wizard.status === "completed") {
-        onRefreshAll();
-      }
-    } catch (err) {
-      setWizardError(err instanceof Error ? err.message : "Could not record that answer.");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleReset = async () => {
-    setIsSubmitting(true);
-    setWizardError(null);
-    try {
-      const { report } = await resetWebsiteSalesDiagnosisWizard(tenantId);
-      onReportUpdate(report);
-    } catch (err) {
-      setWizardError(err instanceof Error ? err.message : "Could not restart the conversation.");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const toggleResultSolution = async (solutionId: string) => {
-    if (!diagnosisReport) return;
-    const current = diagnosisReport.solutionOptions.find((solution) => solution.id === solutionId);
-    const selectedIds = diagnosisReport.solutionOptions
-      .filter((solution) =>
-        solution.id === solutionId
-          ? current?.status !== "selected"
-          : solution.status === "selected",
-      )
-      .map((solution) => solution.id);
-    try {
-      const { report } = await updateWebsiteSalesDiagnosisSolutions({
-        tenantId,
-        selectedSolutionIds: selectedIds,
-      });
-      onReportUpdate(report);
-    } catch (err) {
-      setWizardError(err instanceof Error ? err.message : "Could not update solution selection.");
-    }
-  };
-
-  return (
-    <>
-      <button
-        className="fixed inset-0 z-40 bg-black/60"
-        onClick={onClose}
-        aria-label="Close diagnosis wizard overlay"
-      />
-      <aside className="fixed inset-y-0 right-0 z-50 flex w-[26rem] max-w-[94vw] flex-col overflow-hidden bg-card shadow-2xl shadow-black/40">
-        <div className="flex items-center justify-between border-b border-border px-5 py-4">
-          <div>
-            <div className="text-lg font-semibold">Business diagnosis</div>
-            <div className="text-sm text-foreground/45">
-              {wizard
-                ? `${wizard.answeredCount}/${wizard.totalCount} answered - ${wizard.industry.replace(/_/g, " ")}`
-                : "Loading"}
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="inline-flex size-9 items-center justify-center rounded-full hover:bg-foreground/10"
-            aria-label="Close diagnosis wizard"
-          >
-            <X className="size-5" />
-          </button>
-        </div>
-
-        {!wizard || !diagnosisReport ? (
-          <div className="flex-1 p-5 text-sm text-foreground/40">
-            Preparing the diagnosis conversation.
-          </div>
-        ) : wizard.status === "completed" ? (
-          <DiagnosisResultsView
-            report={diagnosisReport}
-            activationPlan={activationPlan}
-            isActivationWorking={isActivationWorking}
-            isSubmitting={isSubmitting}
-            error={wizardError}
-            onToggleSolution={toggleResultSolution}
-            onApprove={() => activationPlan && onApproveActivation(activationPlan.id)}
-            onReset={handleReset}
-          />
-        ) : (
-          <>
-            <div ref={scrollRef} className="flex-1 space-y-4 overflow-y-auto px-5 py-5">
-              {wizard.turnHistory.map((turn) => (
-                <WizardTurnBubble key={turn.id} turn={turn} />
-              ))}
-              {isSubmitting && (
-                <div className="flex gap-3">
-                  <AgentAvatar />
-                  <div className="rounded-3xl px-5 py-3">
-                    {wizard.answeredCount + 1 >= wizard.totalCount ? (
-                      <DiagnosisFindingsStatus />
-                    ) : (
-                      <ThinkingDots />
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-            {wizardError && (
-              <div className="mx-5 mb-2 rounded-xl border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
-                {wizardError}
-              </div>
-            )}
-            <div className="border-t border-border p-4">
-              {wizard.currentQuestion?.inputMode === "yes_no" ? (
-                <WizardYesNoPrompt
-                  disabled={isSubmitting}
-                  onYes={() => submitAnswer("yes")}
-                  onNo={() => submitAnswer("no")}
-                />
-              ) : (
-                <WizardComposer
-                  value={draftText}
-                  disabled={isSubmitting}
-                  skippable={wizard.currentQuestion?.skippable ?? false}
-                  onChange={setDraftText}
-                  onSend={() => draftText.trim() && submitAnswer("text", draftText.trim())}
-                  onSkip={() => submitAnswer("skip")}
-                />
-              )}
-            </div>
-          </>
-        )}
-      </aside>
-    </>
-  );
-}
 
 function WizardTurnBubble({ turn }: { turn: WebsiteSalesWizardTurn }) {
   const isOwner = turn.role === "owner";
