@@ -341,23 +341,23 @@ const personalOutputStyles = [
 ];
 
 const buildSteps = [
-  "Creating Workspace",
-  "Setting Up Knowledge Base",
-  "Creating Recommended Agents",
-  "Training First Agent",
-  "Configuring Dashboard",
+  "Setting up your workspace",
+  "Saving what you told us",
+  "Getting your agents ready",
+  "Teaching your first agent",
+  "Almost there",
   "Ready",
 ];
 
 const stepNav = [
   { label: "Welcome", short: "Start" },
-  { label: "Workspace", short: "Type" },
-  { label: "Profile", short: "Profile" },
-  { label: "Goals", short: "Goals" },
-  { label: "Knowledge", short: "Train" },
+  { label: "Your business", short: "Business" },
+  { label: "About you", short: "About" },
+  { label: "What to watch", short: "Watch for" },
+  { label: "What it knows", short: "Knows" },
   { label: "Plan", short: "Plan" },
-  { label: "Build", short: "Build" },
-  { label: "Review", short: "Review" },
+  { label: "Setting up", short: "Setup" },
+  { label: "Review & approve", short: "Approve" },
 ];
 
 type SetupForm = {
@@ -463,7 +463,7 @@ export default function Onboarding() {
         }
         return value + 1;
       });
-    }, 650);
+    }, 420);
 
     if (activeType === "business" && !provisionRef.current) {
       provisionRef.current = provisionBusinessTenant();
@@ -1566,8 +1566,8 @@ function BuildStep({ buildIndex }: { buildIndex: number }) {
         <div className="absolute inset-0 animate-spin rounded-full border-4 border-transparent border-t-primary border-r-secondary" />
         <img src={icon} alt="Jaabili" className="h-14 w-auto" />
       </div>
-      <h1 className="text-4xl font-semibold tracking-tight">Building Workspace...</h1>
-      <p className="mt-3 text-sm text-foreground/48">Creating your AI workspace and dashboard.</p>
+      <h1 className="text-4xl font-semibold tracking-tight">Setting things up...</h1>
+      <p className="mt-3 text-sm text-foreground/48">This takes a few seconds — nothing goes live yet.</p>
       <div className="mt-10 w-full max-w-lg space-y-3 text-left">
         {buildSteps.map((item, index) => (
           <div
@@ -1687,8 +1687,8 @@ function FinalReviewStep({
     <div className="mx-auto max-w-5xl py-2">
       <StepHeader
         eyebrow="Final Review"
-        title="Review and create"
-        subtitle="Agents stay in draft until you publish."
+        title="Review, then approve"
+        subtitle="Nothing goes live until you say so — you can review and publish from your dashboard any time."
       />
       <div className="mt-6 space-y-3">
         <ReviewRow
@@ -1698,7 +1698,7 @@ function FinalReviewStep({
         />
         <ReviewRow
           icon={Sparkles}
-          title="Agent Personality"
+          title="How it talks to people"
           meta={`${form.tone} - ${workspaceType === "business" ? form.leadChannel : "Helpful"} - Guided`}
         />
         <ReviewRow
@@ -1735,22 +1735,22 @@ function FinalReviewStep({
         <ConsentCheck
           checked={draftConsent}
           onChange={setDraftConsent}
-          label="I understand that my agents will start in Draft Mode until I publish them to live channels."
+          label="I've reviewed what my agent will do — it stays off until I approve it going live."
         />
         <ConsentCheck
           checked={termsConsent}
           onChange={setTermsConsent}
           label={
             <>
-              I agree to the{" "}
+              I approve setting this up, under the{" "}
               <Link href="/terms" className="text-primary underline underline-offset-4">
                 Terms
-              </Link>
-              ,{" "}
+              </Link>{" "}
+              and{" "}
               <Link href="/privacy" className="text-primary underline underline-offset-4">
                 Privacy Policy
               </Link>
-              , and data processing for agent setup.
+              .
             </>
           }
         />
