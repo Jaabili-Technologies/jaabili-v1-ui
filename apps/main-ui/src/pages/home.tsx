@@ -11,16 +11,15 @@ import {
   Zap,
   Lock,
   BarChart,
-  ArrowRight,
   Sparkles,
   Layers,
   MessagesSquare,
   Rocket,
-  Star,
   Quote,
 } from "lucide-react";
 import { MagneticButton } from "@/components/ui/magnetic-button";
 import { RollingHeadline } from "@/components/ui/rolling-headline";
+import { AGENT_CATALOG } from "@/lib/agent-catalog";
 import {
   Accordion,
   AccordionContent,
@@ -35,15 +34,11 @@ import productDashboardShot from "@assets/product-dashboard-shot.png";
 const BASE = import.meta.env.BASE_URL;
 const channelsHub = BASE + "assets/images/channels-hub.png";
 
-const partners = [
-  "Aurora Ventures",
-  "Helios Labs",
-  "Northwind Capital",
-  "Starlight Partners",
-  "Meridian Tech",
-  "Vanguard Systems",
-  "Apex Dynamics",
-  "Zenith Corp",
+const trustBadges = [
+  "Nothing goes live without your approval",
+  "Deterministic business rules, not guesswork",
+  "Your own fine-tuned model, not a shared chatbot",
+  "Every decision traceable back to your data",
 ];
 
 const flashCards = [
@@ -57,121 +52,81 @@ const flashCards = [
 
 const purposeCards = [
   {
-    title: "Turn scattered service work into one operating layer",
-    desc: "Jaabili connects the places where work starts - chat, web, voice, CRM, documents - and gives each service a clear agentic owner.",
+    title: "Your agent runs on rules you can see, not a black box",
+    desc: "What Nova asks, what it flags, and what it's allowed to do on its own is decided by plain business logic you can review — the model only handles the wording, never the decision.",
     icon: Layers,
     accent: "var(--primary)",
     stat: "01",
   },
   {
-    title: "Let each agent own a real business outcome",
-    desc: "Sales agents qualify, support agents resolve, onboarding agents collect context, and internal agents move work across your tools.",
+    title: "Every agent owns one job, done well",
+    desc: "Nova qualifies website visitors. The next agents each own one real outcome too — support, follow-up, WhatsApp — instead of one general assistant trying to do everything.",
     icon: Target,
     accent: "var(--secondary)",
     stat: "02",
   },
   {
-    title: "Keep control while the system gets faster",
-    desc: "Human approval, audit trails, secure memory, and model routing keep automation useful without turning your operations into a black box.",
+    title: "Nothing goes live without you saying so",
+    desc: "Your agent proposes a plan — what it found, what it recommends — and waits for your approval before anything reaches a real customer. You're always the one who says go.",
     icon: ShieldCheck,
     accent: "var(--accent)",
     stat: "03",
   },
 ];
 
-const bentoItems = [
-  {
-    title: "Nova",
-    desc: "Your website sales agent — greets visitors, answers questions from your own content, and qualifies every lead. Live today.",
-    icon: Target,
-    accent: "var(--primary)",
-    span: "md:col-span-2 md:row-span-2",
-    big: true,
-  },
-  {
-    title: "WhatsApp Business Agent",
-    desc: "Coming next — automated conversations on WhatsApp.",
-    icon: MessagesSquare,
-    accent: "var(--secondary)",
-    span: "md:col-span-1",
-  },
-  {
-    title: "Customer Support Agent",
-    desc: "Coming next — resolves repetitive queries from your knowledge base.",
-    icon: ShieldCheck,
-    accent: "var(--accent)",
-    span: "md:col-span-1",
-  },
-  {
-    title: "Lead Follow-Up Agent",
-    desc: "Coming next — automatically re-engages captured leads.",
-    icon: Sparkles,
-    accent: "var(--primary)",
-    span: "md:col-span-2",
-  },
-  {
-    title: "Business Operations Agent",
-    desc: "Coming next — AI-generated insights across your agents.",
-    icon: Layers,
-    accent: "var(--secondary)",
-    span: "md:col-span-1",
-  },
-];
+// Pulled straight from AGENT_CATALOG (lib/agent-catalog.ts) instead of a
+// separate hardcoded list -- that catalog is the single source of truth the
+// dashboard also reads from, so this section can't quietly drift out of
+// sync with which agents are actually real vs. still in development.
+const bentoSpans: Record<string, string> = {
+  "website-sales": "md:col-span-2 md:row-span-2",
+  "follow-up": "md:col-span-2",
+};
 
 const howSteps = [
   {
     n: "01",
     icon: Sparkles,
-    title: "Map the work",
-    desc: "We identify where service work enters, who owns it, and which handoffs are slow enough to deserve an agent.",
+    title: "Tell it about your business",
+    desc: "A short setup conversation — what you sell, who you sell to, what visitors usually ask. No forms, no technical setup.",
     accent: "var(--primary)",
   },
   {
     n: "02",
     icon: MessagesSquare,
-    title: "Customize in chat",
-    desc: "Describe how it should behave. The studio shapes the system prompt, knowledge base, and tools as you talk.",
+    title: "Review what it found",
+    desc: "Nova shows you exactly what it's picked up and what it plans to do about it — in plain language, not logs.",
     accent: "var(--secondary)",
   },
   {
     n: "03",
     icon: Rocket,
-    title: "Deploy everywhere",
-    desc: "One click to ship to WhatsApp, web widget, voice, or your CRM — with analytics from minute one.",
+    title: "Approve, then it runs",
+    desc: "You say go. From then on it works on your site, and you can check in or step in any time.",
     accent: "var(--accent)",
   },
 ];
 
-const reviews = [
+const faqItems = [
   {
-    q: "How long does it take to launch our first agent?",
-    a: "Most teams have a working agent in under 30 minutes — pick a template, paste your knowledge base, and connect a channel. Our beta partners ship to production the same day.",
-    by: "Priya M.",
-    role: "Head of CX, Aurora Retail",
+    q: "Is this a chatbot?",
+    a: "Not the way you're picturing it. What Nova asks for, what it flags as a problem, and what it's allowed to do without you is decided by plain business rules — not the model guessing. The model's only job is choosing the wording. That split is the whole point: predictable behavior, natural conversation.",
   },
   {
-    q: "Do you handle compliance and data isolation for us?",
-    a: "Yes. Every workspace runs on isolated vector storage with end-to-end encryption. We're SOC 2-aligned and provide region pinning for EU and India deployments out of the box.",
-    by: "Rohit S.",
-    role: "VP Engineering, Meridian Tech",
+    q: "What happens before it goes live on my site?",
+    a: "Nova asks you a handful of setup questions, then shows you what it found and what it wants to do. Nothing reaches a real visitor until you approve it.",
   },
   {
-    q: "Can the agents talk to our existing tools?",
-    a: "The Workflow Copilot ships with first-party connectors for Notion, Sheets, Slack, HubSpot, Salesforce, and a webhook bridge for anything else. You can also expose your own internal APIs as tools.",
-    by: "Lina T.",
-    role: "Operations Lead, Helios Labs",
+    q: "Whose AI model is actually answering?",
+    a: "A model we trained ourselves for this one job, not a general-purpose assistant repurposed for sales. It runs on our own infrastructure — your data isn't going to train someone else's product.",
   },
   {
-    q: "What does pricing look like once we scale past the free tier?",
-    a: "Start free with one agent and a small monthly conversation budget. Paid tiers price on conversations and channels — we'll publish Basic, Pro, and Enterprise rates as we open the public beta.",
-    by: "Daniel K.",
-    role: "Founder, Northwind Capital",
+    q: "What if I'm not technical?",
+    a: "That's who this is built for. Setup is a conversation, not a configuration screen. If a term ever shows up that doesn't make sense, that's a bug worth telling us about.",
   },
   {
-    q: "Which models can the platform route between?",
-    a: "Today: OpenAI GPT-5/4, Anthropic Claude, Google Gemini, and Mistral. The router picks per-turn based on task complexity, latency budget, and cost ceiling — you can also pin a model per skill.",
-    by: "Anika R.",
-    role: "ML Lead, Vanguard Systems",
+    q: "What's actually live today, versus coming later?",
+    a: "Nova (website sales) is live. Everything else on this page marked \"coming next\" is genuinely not built yet — we'd rather say that than pretend.",
   },
 ];
 
@@ -292,10 +247,10 @@ export default function Home() {
             transition={{ duration: 0.6, delay: 0.7, ease: "easeOut" }}
             className="text-foreground/60 text-base md:text-xl max-w-2xl mb-10 font-light leading-relaxed"
           >
-            Start with Nova, a website sales agent that answers visitor
-            questions from your own content and captures qualified leads
-            while you sleep. More agents — WhatsApp, support, follow-up —
-            are on the way.
+            Nova answers your website visitors' questions from your own
+            content, qualifies the good leads, and asks before it does
+            anything you haven't approved. It's built to run your business,
+            not to chat.
           </motion.p>
 
           <motion.div
@@ -364,14 +319,13 @@ export default function Home() {
                 Purpose
               </div>
               <h2 className="text-3xl md:text-4xl lg:text-5xl text-foreground font-display font-semibold tracking-tight leading-tight">
-                Not another dashboard. A working layer for every service.
+                Built to be trusted, not just impressive.
               </h2>
             </div>
             <p className="text-foreground/55 text-base md:text-lg leading-relaxed max-w-2xl lg:justify-self-end">
-              Jaabili is meant to split your business into capable agent
-              applications without losing the benefit of one connected platform.
-              Each agent has a job, memory, tools, guardrails, and a measurable
-              outcome.
+              Every agent we build has one job, a clear set of rules for what
+              it can decide on its own, and a hard stop before anything
+              reaches a real customer without you signing off.
             </p>
           </div>
 
@@ -425,13 +379,13 @@ export default function Home() {
         ref={marqueeRef}
         className="bg-foreground/[0.02] border-y border-border py-6 overflow-hidden flex whitespace-nowrap"
       >
-        <div className="marquee-inner flex gap-14 items-center text-foreground/30 font-serif italic text-xl">
-          {Array(4).fill(partners).flat().map((partner, i) => (
+        <div className="marquee-inner flex gap-14 items-center text-foreground/40 text-sm font-medium uppercase tracking-[0.14em]">
+          {Array(4).fill(trustBadges).flat().map((badge, i) => (
             <span
               key={i}
-              className="hover:text-foreground/70 transition-colors cursor-default"
+              className="hover:text-foreground/80 transition-colors cursor-default"
             >
-              {partner}
+              {badge}
             </span>
           ))}
         </div>
@@ -494,21 +448,22 @@ export default function Home() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             <div className="reveal-up order-2 lg:order-1">
               <h2 className="text-3xl md:text-5xl font-display font-semibold tracking-tight text-foreground mb-6 leading-tight">
-                One agent. <br />
+                Every conversation, <br />
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-secondary to-accent">
-                  Every visitor.
+                  logged and yours.
                 </span>
               </h2>
               <p className="text-foreground/60 text-xl font-light leading-relaxed mb-8">
-                Every website conversation is saved, every lead is scored, and
-                your business data stays isolated to your workspace alone.
+                Every chat is saved, every lead is scored the same way every
+                time, and your business data stays in your own workspace —
+                not pooled into a shared model.
               </p>
               <ul className="space-y-4 mb-10">
                 {[
-                  "Full conversation history",
-                  "Automatic lead scoring",
-                  "Per-workspace data isolation",
-                  "Human takeover, any time",
+                  "Full conversation history, searchable",
+                  "Lead scoring you can see the logic behind",
+                  "Your data stays in your own workspace",
+                  "Step into any conversation yourself, any time",
                 ].map((feature, i) => (
                   <li key={i} className="flex items-center gap-3 text-foreground/80">
                     <ShieldCheck className="w-5 h-5 text-primary shrink-0" />
@@ -518,7 +473,7 @@ export default function Home() {
               </ul>
               <Link href="/agents">
                 <MagneticButton variant="outline">
-                  Explore Architecture
+                  See how it's built
                 </MagneticButton>
               </Link>
             </div>
@@ -539,57 +494,67 @@ export default function Home() {
         </div>
       </section>
 
-      {/* WHAT WE BUILD — BENTO GRID */}
+      {/* WHAT WE BUILD — BENTO GRID, sourced from the real agent catalog */}
       <section className="py-32 relative border-b border-border">
         <div className="container px-6 max-w-7xl mx-auto">
           <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6 mb-12 reveal-up">
             <div>
               <h2 className="text-3xl md:text-5xl text-foreground font-display font-semibold tracking-tight leading-tight">
-                What we build, end to end.
+                Seven agents. One at a time, done properly.
               </h2>
             </div>
             <p className="text-foreground/50 max-w-md font-light leading-relaxed">
-              Six building blocks. One unified runtime. Compose the agents your
-              business actually needs — without stitching tools together.
+              Nova's live. Three more are already in setup for paying
+              workspaces. The rest are genuinely still being built — not
+              stalling on marketing while nothing happens behind it.
             </p>
           </div>
 
           <div className="bento-grid grid grid-cols-1 md:grid-cols-4 auto-rows-[180px] gap-4">
-            {bentoItems.map((item, i) => (
-              <div
-                key={i}
-                className={`bento-item group relative rounded-3xl border border-border bg-card/30 backdrop-blur-md overflow-hidden p-6 md:p-8 flex flex-col justify-between hover:border-border hover:-translate-y-1 transition-all duration-500 ${item.span}`}
-              >
+            {AGENT_CATALOG.map((agent) => {
+              const isLive = agent.status === "setup";
+              return (
                 <div
-                  className="absolute -top-12 -right-12 w-48 h-48 rounded-full blur-[60px] opacity-25 group-hover:opacity-40 transition-opacity"
-                  style={{ backgroundColor: item.accent }}
-                />
-                <div
-                  className="absolute top-0 left-0 right-0 h-px opacity-60"
-                  style={{
-                    background: `linear-gradient(90deg, transparent, ${item.accent}, transparent)`,
-                  }}
-                />
-                <div
-                  className="w-11 h-11 rounded-xl flex items-center justify-center bg-foreground/5 border border-border relative z-10"
-                  style={{ color: item.accent }}
+                  key={agent.id}
+                  className={`bento-item group relative rounded-3xl border border-border bg-card/30 backdrop-blur-md overflow-hidden p-6 md:p-8 flex flex-col justify-between hover:border-border hover:-translate-y-1 transition-all duration-500 ${bentoSpans[agent.id] ?? "md:col-span-1"}`}
                 >
-                  <item.icon strokeWidth={1.5} className="w-5 h-5" />
+                  <div
+                    className={`absolute -top-12 -right-12 w-48 h-48 rounded-full blur-[60px] opacity-25 group-hover:opacity-40 transition-opacity ${isLive ? "bg-primary" : "bg-foreground/40"}`}
+                  />
+                  <div className="flex items-center justify-between relative z-10">
+                    <div
+                      className={`w-11 h-11 rounded-xl flex items-center justify-center border border-border ${agent.tint}`}
+                    >
+                      <agent.icon className="w-5 h-5" />
+                    </div>
+                    <span
+                      className={`rounded-full px-2.5 py-1 text-[11px] font-medium uppercase tracking-wide ${isLive ? "bg-primary/12 text-primary" : "bg-foreground/8 text-foreground/45"}`}
+                    >
+                      {agent.status === "setup"
+                        ? agent.id === "website-sales"
+                          ? "Live"
+                          : "In setup"
+                        : "In development"}
+                    </span>
+                  </div>
+                  <div className="relative z-10">
+                    <h3
+                      className={`font-display font-semibold text-foreground mb-2 tracking-tight ${agent.id === "website-sales" ? "text-3xl md:text-4xl" : "text-xl"}`}
+                    >
+                      {agent.name}
+                      <span className="ml-2 text-sm font-normal text-foreground/40">
+                        {agent.role}
+                      </span>
+                    </h3>
+                    <p
+                      className={`text-foreground/55 leading-relaxed font-light ${agent.id === "website-sales" ? "text-base md:text-lg max-w-md" : "text-sm"}`}
+                    >
+                      {agent.description}
+                    </p>
+                  </div>
                 </div>
-                <div className="relative z-10">
-                  <h3
-                    className={`font-display font-semibold text-foreground mb-2 tracking-tight ${item.big ? "text-3xl md:text-4xl" : "text-xl"}`}
-                  >
-                    {item.title}
-                  </h3>
-                  <p
-                    className={`text-foreground/55 leading-relaxed font-light ${item.big ? "text-base md:text-lg max-w-md" : "text-sm"}`}
-                  >
-                    {item.desc}
-                  </p>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </section>
@@ -656,9 +621,10 @@ export default function Home() {
             <div className="absolute -top-24 -right-24 w-64 h-64 bg-primary/10 rounded-full blur-[80px]" />
             <Quote className="w-10 h-10 text-foreground/15 mx-auto mb-8" strokeWidth={1.5} />
             <h3 className="text-2xl md:text-4xl font-serif italic text-foreground leading-relaxed mb-8">
-              "We don't just build chatbots. We build cognitive systems that
-              understand your business logic and execute it flawlessly across
-              every medium."
+              "I didn't want to build another chat window. I wanted something
+              a shop owner could actually trust to run part of their business
+              — which meant it had to explain itself, and it had to ask
+              before it acted."
             </h3>
             <div className="flex items-center justify-center gap-4">
               <div className="w-12 h-12 rounded-full bg-foreground/10 flex items-center justify-center font-serif text-xl border border-border">
@@ -678,11 +644,11 @@ export default function Home() {
         <div className="container px-6 max-w-5xl mx-auto">
           <div className="text-center mb-14 reveal-up">
             <h2 className="text-3xl md:text-5xl text-foreground font-display font-semibold tracking-tight mb-4 leading-tight">
-              Questions our beta partners asked.
+              Questions people actually ask us.
             </h2>
             <p className="text-foreground/55 text-lg font-light max-w-2xl mx-auto leading-relaxed">
-              These are the things teams actually wanted to know before
-              shipping. Real questions, real answers.
+              No filler questions here — this is what people want to know
+              before they trust an agent with their business.
             </p>
           </div>
 
@@ -692,61 +658,21 @@ export default function Home() {
             className="space-y-3 reveal-up"
             defaultValue="q-0"
           >
-            {reviews.map((r, i) => (
+            {faqItems.map((item, i) => (
               <AccordionItem
                 key={i}
                 value={`q-${i}`}
                 className="border border-border bg-card/30 backdrop-blur-md rounded-2xl overflow-hidden data-[state=open]:border-border data-[state=open]:bg-card/50 transition-colors"
               >
                 <AccordionTrigger className="px-6 py-5 text-left hover:no-underline group">
-                  <div className="flex items-start gap-4 flex-1">
-                    <div className="w-9 h-9 shrink-0 rounded-full bg-primary/15 border border-primary/30 flex items-center justify-center text-primary text-xs font-semibold">
-                      {r.by
-                        .split(" ")
-                        .map((p) => p[0])
-                        .join("")}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-foreground font-medium text-sm">
-                          {r.by}
-                        </span>
-                        <span className="text-foreground/40 text-xs">
-                          · {r.role}
-                        </span>
-                        <div className="flex items-center gap-0.5 ml-auto md:ml-2">
-                          {[...Array(5)].map((_, k) => (
-                            <Star
-                              key={k}
-                              className="w-3 h-3 fill-secondary text-secondary"
-                            />
-                          ))}
-                        </div>
-                      </div>
-                      <p className="text-base md:text-lg font-medium text-foreground/90 leading-snug group-hover:text-foreground transition-colors">
-                        {r.q}
-                      </p>
-                    </div>
-                  </div>
+                  <p className="text-base md:text-lg font-medium text-foreground/90 leading-snug group-hover:text-foreground transition-colors">
+                    {item.q}
+                  </p>
                 </AccordionTrigger>
                 <AccordionContent className="px-6 pb-6">
-                  <div className="ml-13 pl-13 border-l border-border">
-                    <div className="ml-4 flex gap-3">
-                      <div className="w-9 h-9 shrink-0 rounded-full bg-gradient-to-br from-primary via-secondary to-accent p-[1.5px]">
-                        <div className="w-full h-full rounded-full bg-background flex items-center justify-center text-[10px] font-bold tracking-wider text-foreground">
-                          JB
-                        </div>
-                      </div>
-                      <div className="flex-1">
-                        <div className="text-xs text-foreground/40 mb-1.5 font-medium">
-                          Jaabili Studio
-                        </div>
-                        <p className="text-foreground/75 text-base leading-relaxed font-light">
-                          {r.a}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
+                  <p className="text-foreground/75 text-base leading-relaxed font-light">
+                    {item.a}
+                  </p>
                 </AccordionContent>
               </AccordionItem>
             ))}
@@ -771,16 +697,16 @@ export default function Home() {
       <section className="py-32 bg-gradient-to-b from-transparent to-primary/10 text-center relative overflow-hidden">
         <div className="container px-6 relative z-10 max-w-4xl mx-auto flex flex-col items-center">
           <h2 className="text-3xl md:text-5xl lg:text-6xl mb-6 text-foreground font-display font-semibold tracking-tight leading-tight reveal-up">
-            Ready to automate?
+            Try it free. Approve everything yourself.
           </h2>
           <p className="text-lg md:text-xl text-foreground/60 mb-10 reveal-up max-w-2xl leading-relaxed font-light">
-            Step into the future. Let us build the intelligent systems that
-            drive your autonomous growth.
+            Set up Nova in a short conversation, see exactly what it plans to
+            do, and decide whether it goes live. No card required to start.
           </p>
           <div className="reveal-up flex flex-col sm:flex-row gap-3">
             <Link href="/get-started">
               <button className="px-8 py-3.5 bg-foreground text-background rounded-full font-semibold hover:opacity-90 transition-all shadow-[0_0_40px_rgba(255,255,255,0.15)] hover:scale-[1.02]">
-                Start building today
+                Set up your agent
               </button>
             </Link>
             <Link href="/pricing">
