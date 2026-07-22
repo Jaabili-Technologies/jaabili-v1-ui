@@ -40,6 +40,7 @@ interface AuthContextValue {
   signInWithEmail: (email: string, password: string) => Promise<AuthUser>;
   signUpWithEmail: (name: string, email: string, password: string) => Promise<AuthUser>;
   signOut: () => Promise<void>;
+  updateName: (name: string) => Promise<void>;
   changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
   deleteAccount: (password: string) => Promise<void>;
 }
@@ -249,6 +250,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const updateName = async (name: string) => {
+    await authedRequest("update-name", { name });
+    setUser((current) => {
+      if (!current) return current;
+      const updated = { ...current, displayName: name };
+      writeUser(updated);
+      return updated;
+    });
+  };
+
   const changePassword = (currentPassword: string, newPassword: string) =>
     authedRequest("change-password", { currentPassword, newPassword });
 
@@ -266,6 +277,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signInWithEmail,
         signUpWithEmail,
         signOut,
+        updateName,
         changePassword,
         deleteAccount,
       }}

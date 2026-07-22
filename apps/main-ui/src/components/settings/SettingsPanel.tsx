@@ -1,5 +1,5 @@
 import { useMemo, useState, type FormEvent } from "react";
-import { AlertTriangle, Check, Loader2, ShieldCheck } from "lucide-react";
+import { AlertTriangle, Check, Loader2, Pencil, ShieldCheck } from "lucide-react";
 import { Link } from "wouter";
 import { useAuth } from "@/lib/auth-context";
 import { readOnboarding } from "@/lib/onboarding";
@@ -7,22 +7,110 @@ import { AGENT_CATALOG, PLAN_LIMITS } from "@/lib/agent-catalog";
 import { cn } from "@/lib/utils";
 
 export function SettingsPanel() {
-  const { user } = useAuth();
-
   return (
     <div className="mx-auto max-w-2xl space-y-10 px-1 py-2">
-      <section>
-        <h2 className="text-lg font-semibold">Account</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Signed in as <span className="text-foreground">{user?.email}</span>
-        </p>
-      </section>
-
+      <ProfileSection />
       <PlanSection />
       <ChangePasswordSection />
       <PrivacySection />
       <DangerZoneSection />
     </div>
+  );
+}
+
+function ProfileSection() {
+  const { user, updateName } = useAuth();
+  const [isEditing, setIsEditing] = useState(false);
+  const [name, setName] = useState(user?.displayName ?? "");
+  const [status, setStatus] = useState<"idle" | "saving" | "success">("idle");
+  const [error, setError] = useState<string | null>(null);
+  const isGoogleAccount = Boolean(user?.photoURL);
+  const initial = (user?.displayName ?? user?.email ?? "?").trim().charAt(0).toUpperCase();
+
+  const handleSubmit = async (event: FormEvent) => {
+    event.preventDefault();
+    setError(null);
+    const trimmed = name.trim();
+    if (!trimmed) {
+      setError("Name can't be empty.");
+      return;
+    }
+    setStatus("saving");
+    try {
+      await updateName(trimmed);
+      setStatus("success");
+      setIsEditing(false);
+      window.setTimeout(() => setStatus("idle"), 3000);
+    } catch (err) {
+      setStatus("idle");
+      setError(err instanceof Error ? err.message : "Could not update name.");
+    }
+  };
+
+  return (
+    <section>
+      <h2 className="text-lg font-semibold">Account</h2>
+      <div className="mt-3 flex items-center gap-4">
+        <div className="flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-full bg-foreground/10 text-lg font-medium text-foreground/60">
+          {user?.photoURL ? (
+            <img src={user.photoURL} alt="" className="size-full object-cover" referrerPolicy="no-referrer" />
+          ) : (
+            initial
+          )}
+        </div>
+        <div className="min-w-0 flex-1">
+          {isEditing ? (
+            <form onSubmit={handleSubmit} className="flex items-center gap-2">
+              <input
+                type="text"
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                autoFocus
+                className="h-9 w-full max-w-[16rem] rounded-lg border border-border bg-background px-3 text-sm outline-none focus:border-primary"
+              />
+              <button
+                type="submit"
+                disabled={status === "saving"}
+                className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-foreground px-3 text-xs font-medium text-background disabled:opacity-50"
+              >
+                {status === "saving" && <Loader2 className="size-3 animate-spin" />}
+                Save
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsEditing(false);
+                  setName(user?.displayName ?? "");
+                  setError(null);
+                }}
+                className="text-xs text-muted-foreground hover:text-foreground"
+              >
+                Cancel
+              </button>
+            </form>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setIsEditing(true)}
+              className="group flex items-center gap-1.5 text-sm font-medium text-foreground"
+            >
+              {user?.displayName || "Add your name"}
+              <Pencil className="size-3.5 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
+            </button>
+          )}
+          <p className="mt-0.5 text-sm text-muted-foreground">{user?.email}</p>
+        </div>
+        <span className="shrink-0 rounded-full bg-foreground/8 px-2.5 py-1 text-[11px] text-muted-foreground">
+          {isGoogleAccount ? "Google account" : "Email & password"}
+        </span>
+      </div>
+      {error && <p className="mt-2 text-xs text-destructive">{error}</p>}
+      {status === "success" && (
+        <p className="mt-2 flex items-center gap-1.5 text-xs text-primary">
+          <Check className="size-3.5" /> Name updated.
+        </p>
+      )}
+    </section>
   );
 }
 
