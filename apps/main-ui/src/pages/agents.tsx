@@ -5,8 +5,18 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { AnimatedHeadline } from "@/components/ui/animated-headline";
 import { MagneticButton } from "@/components/ui/magnetic-button";
 import { Link } from "wouter";
+import { AGENT_CATALOG } from "@/lib/agent-catalog";
 
 gsap.registerPlugin(ScrollTrigger);
+
+const liveAgentDetails: Record<string, { description: string; capabilities: string[]; channels: string[] }> = {
+  "website-sales": {
+    description:
+      "An always-on agent embedded on your website. It greets visitors, answers questions from your own content, and captures every lead sorted hot, medium, or low -- but nothing it drafts reaches a real customer until you've approved it.",
+    capabilities: ["Answers from your own content", "Lead capture & qualification", "Instant owner notifications", "Full conversation history"],
+    channels: ["Website"],
+  },
+};
 
 export default function Agents() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -28,18 +38,18 @@ export default function Agents() {
     });
   }, { scope: containerRef });
 
-  const agents = [
-    {
-      title: "Nova",
-      kicker: "Website Sales Agent",
-      description: "An always-on chat widget for your website that greets visitors, answers FAQs, and captures qualified leads — sorted hot, medium, or low — straight into your dashboard.",
-      capabilities: ["FAQ Answers From Your Content", "Lead Capture & Qualification", "Instant Owner Notifications", "Full Conversation History"],
-      channels: ["Website"],
+  const liveAgents = AGENT_CATALOG.filter((agent) => agent.status === "setup" && liveAgentDetails[agent.id]).map(
+    (agent) => ({
+      title: agent.name,
+      kicker: agent.role,
       color: "from-primary/20 to-transparent",
       href: "/get-started",
-      action: "Test Nova"
-    }
-  ];
+      action: `Set up ${agent.name}`,
+      ...liveAgentDetails[agent.id],
+    }),
+  );
+  const inSetupAgents = AGENT_CATALOG.filter((agent) => agent.status === "setup" && !liveAgentDetails[agent.id]);
+  const inDevelopmentAgents = AGENT_CATALOG.filter((agent) => agent.status === "locked");
 
   return (
     <div className="bg-background min-h-screen pt-32 pb-20" ref={containerRef}>
@@ -53,7 +63,7 @@ export default function Agents() {
         </div>
 
         <div className="grid grid-cols-1 gap-12 mb-32">
-          {agents.map((agent, idx) => (
+          {liveAgents.map((agent, idx) => (
             <div key={idx} className={`glass-panel p-8 md:p-12 rounded-3xl relative overflow-hidden reveal-up group border border-border hover:border-border transition-colors bg-card/30`}>
               <div className={`absolute top-0 right-0 w-96 h-96 bg-gradient-to-bl ${agent.color} rounded-full blur-[100px] pointer-events-none group-hover:scale-110 transition-transform duration-1000`} />
               
@@ -97,21 +107,40 @@ export default function Agents() {
           ))}
         </div>
 
-        {/* What's next */}
+        {/* In setup for paying workspaces */}
+        {inSetupAgents.length > 0 && (
+          <div className="reveal-up text-center mb-16 glass-panel p-12 rounded-3xl relative overflow-hidden border border-border bg-card/30">
+            <div className="relative z-10">
+              <h2 className="text-sm text-primary tracking-widest uppercase mb-4 font-semibold">In setup</h2>
+              <h3 className="text-4xl font-display font-bold text-foreground mb-6 tracking-tight">Already real, rolling out to workspaces</h3>
+              <p className="text-foreground/60 text-lg max-w-2xl mx-auto mb-10 leading-relaxed">
+                Built and working, not a mockup — currently going out to paying workspaces one at a time.
+              </p>
+              <div className="flex flex-wrap justify-center gap-4">
+                {inSetupAgents.map((agent) => (
+                  <span key={agent.id} className="px-4 py-2 bg-foreground/5 border border-border rounded-lg text-foreground/80">
+                    {agent.name} — {agent.role}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Genuinely still being built */}
         <div className="reveal-up text-center mb-24 glass-panel p-12 rounded-3xl relative overflow-hidden border border-border bg-card/30">
-           <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxwYXRoIGQ9Ik0zNiAzNHYtNGgtdjRoLTR2NGgtdjRoNHY0aDR2LTRoNHptMC0xMnYtNGgtdjRoLTR2NGgtdjRoNHY0aDR2LTRoNHptLTEyIDB2LTRoLTR2NGgtNHY0aDR2NGg0di00aDR6bTAtMTJ2LTRoLTR2NGgtNHY0aDR2NGg0di00aDR6IiBmaWxsPSIjMTJiOGE2IiBmaWxsLW9wYWNpdHk9IjAuMDgiLz48L2c+PC9zdmc+')] pointer-events-none" />
            <div className="relative z-10">
-            <h2 className="text-sm text-secondary tracking-widest uppercase mb-4 font-semibold">Coming Next</h2>
-            <h3 className="text-4xl font-display font-bold text-foreground mb-6 tracking-tight">WhatsApp, Support, and Follow-Up Agents</h3>
+            <h2 className="text-sm text-secondary tracking-widest uppercase mb-4 font-semibold">In development</h2>
+            <h3 className="text-4xl font-display font-bold text-foreground mb-6 tracking-tight">Not live yet — we'd rather say so</h3>
             <p className="text-foreground/60 text-lg max-w-2xl mx-auto mb-10 leading-relaxed">
-              Nova is the first of several agents on our roadmap — each one built, tested, and shipped on its own before it's offered to clients.
+              Each of these is a real build in progress, not a placeholder. We ship one agent at a time, tested, before offering it to clients.
             </p>
             <div className="flex flex-wrap justify-center gap-4">
-              <span className="px-4 py-2 bg-foreground/5 border border-border rounded-lg text-foreground/80">WhatsApp Business Agent</span>
-              <span className="px-4 py-2 bg-foreground/5 border border-border rounded-lg text-foreground/80">Customer Support Agent</span>
-              <span className="px-4 py-2 bg-foreground/5 border border-border rounded-lg text-foreground/80">Lead Follow-Up Agent</span>
-              <span className="px-4 py-2 bg-foreground/5 border border-border rounded-lg text-foreground/80">Business Operations Agent</span>
-              <span className="px-4 py-2 bg-foreground/5 border border-border rounded-lg text-foreground/80">Voice Agent</span>
+              {inDevelopmentAgents.map((agent) => (
+                <span key={agent.id} className="px-4 py-2 bg-foreground/5 border border-border rounded-lg text-foreground/80">
+                  {agent.name} — {agent.role}
+                </span>
+              ))}
             </div>
            </div>
         </div>

@@ -26,8 +26,8 @@ const VALUES = [
   },
   {
     icon: ShieldCheck,
-    title: "Trust by default",
-    desc: "Isolated vector storage, encryption everywhere, region pinning. Privacy isn't a paid add-on.",
+    title: "Nothing acts without your OK",
+    desc: "The agent proposes, you approve. It's a rule we hold ourselves to in the product, not a policy document.",
   },
   {
     icon: HeartHandshake,
@@ -83,10 +83,9 @@ export default function About() {
             other teams wish they had.
           </h1>
           <p className="text-lg md:text-xl text-foreground/60 max-w-3xl leading-relaxed font-light reveal-up">
-            Jaabili Tech Solutions is an Agentic AI studio. We design, build,
-            and operate intelligent agent platforms for businesses that want to
-            move faster — across sales, support, marketing, and the long tail
-            of internal operations.
+            We build agents that do one job well and ask before doing
+            anything else — starting with sales, with more on the way. Not a
+            general-purpose assistant wearing your logo.
           </p>
         </div>
 
@@ -109,15 +108,16 @@ export default function About() {
               slide deck instead of working software.
             </p>
             <p>
-              We thought there was a better path — a focused studio that
-              treats agents like real engineering: production-ready templates,
-              composable building blocks, isolated data, and one runtime that
-              speaks every channel a customer actually uses.
+              So we started with one job — turning website visitors into
+              qualified leads — and built it properly: the agent's decisions
+              come from rules you can actually inspect, the model only
+              handles phrasing, and nothing reaches a real customer without
+              your approval first.
             </p>
             <p>
-              Today we partner with founders, operators, and enterprise teams
-              to design intelligent systems that quietly do the heavy lifting
-              behind sales pipelines, support queues, and internal workflows.
+              We're adding agents one at a time from here, each one built
+              and tested on its own before it ships — not a roadmap slide,
+              an actual build queue.
             </p>
           </div>
         </div>
