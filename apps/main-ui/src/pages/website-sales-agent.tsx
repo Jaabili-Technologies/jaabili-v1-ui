@@ -38,7 +38,6 @@ import iconDark from "@assets/jaabili-icon-dark.png";
 import iconLight from "@assets/jaabili-icon-light.png";
 import { cn } from "@/lib/utils";
 import { BrandPreloader } from "@/components/ui/brand-loader";
-import { NovaAgentIcon } from "@/components/ui/agent-icons";
 import { useAuth } from "@/lib/auth-context";
 import { readOnboarding } from "@/lib/onboarding";
 import { AGENT_CATALOG } from "@/lib/agent-catalog";
@@ -1413,7 +1412,7 @@ function EmptyComposerState({
         onApproveActivation={onApproveActivation}
       />
 
-      <div className="mx-auto mt-4 w-full max-w-3xl">
+      <div className="mx-auto mt-4 w-full max-w-4xl">
         <VisitorSimulatorPanel
           isOpen={isSimulatorOpen}
           messages={messages}
@@ -1572,7 +1571,7 @@ function AgentWorkspaceHero({
   };
 
   return (
-    <div className="jaabili-rise-in mx-auto w-full max-w-3xl">
+    <div className="jaabili-rise-in mx-auto w-full max-w-4xl">
       <div className="mb-4 rounded-2xl border border-border bg-card/85 p-4">
         <div className="flex items-center gap-4">
           <ProgressRing percent={percent} />
@@ -1653,9 +1652,7 @@ function AgentWorkspaceHero({
               ))}
               {isSubmitting && (
                 <div className="flex gap-3">
-                  <div className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/12 text-primary">
-                    <NovaAgentIcon className="size-4" />
-                  </div>
+                  <AgentAvatar />
                   <div className="rounded-3xl px-5 py-3">
                     {wizard.answeredCount + 1 >= wizard.totalCount ? (
                       <DiagnosisFindingsStatus />
@@ -1897,9 +1894,7 @@ function VisitorSimulatorPanel({
                 ))}
                 {isSending && (
                   <div className="flex items-center gap-3 text-foreground/45">
-                    <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/12 text-primary">
-                      <NovaAgentIcon className="size-4" />
-                    </div>
+                    <AgentAvatar />
                     <ThinkingDots />
                   </div>
                 )}
@@ -2098,7 +2093,7 @@ function Composer({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   return (
-    <div className="jaabili-composer-glow w-full max-w-[48rem] rounded-[1.65rem] p-px">
+    <div className="jaabili-composer-glow w-full max-w-[56rem] rounded-[1.65rem] p-px">
       <div className="rounded-[1.65rem] bg-card px-3 py-2.5 shadow-2xl shadow-black/30">
         <div className="flex items-center gap-2.5">
           <div className="relative">
@@ -2464,6 +2459,46 @@ function normalizeWebsiteUrl(value: string): string {
   return `https://${trimmed}`;
 }
 
+// Jaabili's own brand mark (no wordmark) doubles as every agent's chat
+// avatar -- one consistent, recognizable "this is the agent talking" signal
+// instead of a per-agent icon, matching how Claude/ChatGPT use one brand
+// mark for the assistant regardless of which model answered.
+function AgentAvatar({ className }: { className?: string }) {
+  return (
+    <div
+      className={cn(
+        "mt-0.5 flex size-7 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary/12",
+        className,
+      )}
+    >
+      <img src="/peacock-mark.png" alt="" className="size-[70%] object-contain" />
+    </div>
+  );
+}
+
+// The signed-in owner's real Google profile photo, same as ChatGPT/Claude
+// showing your actual account avatar rather than a generic placeholder dot.
+// Falls back to initials when no photo is set.
+function OwnerAvatar({ className }: { className?: string }) {
+  const { user } = useAuth();
+  const initial = (user?.displayName ?? user?.email ?? "?").trim().charAt(0).toUpperCase();
+
+  return (
+    <div
+      className={cn(
+        "mt-0.5 flex size-7 shrink-0 items-center justify-center overflow-hidden rounded-full bg-foreground/10 text-xs font-medium text-foreground/60",
+        className,
+      )}
+    >
+      {user?.photoURL ? (
+        <img src={user.photoURL} alt="" className="size-full object-cover" referrerPolicy="no-referrer" />
+      ) : (
+        initial
+      )}
+    </div>
+  );
+}
+
 function MessageBubble({
   message,
   animate,
@@ -2475,11 +2510,7 @@ function MessageBubble({
 
   return (
     <div className={cn("jaabili-message-in flex gap-3", isVisitor && "justify-end")}>
-      {!isVisitor && (
-        <div className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/12 text-primary">
-          <NovaAgentIcon className="size-4" />
-        </div>
-      )}
+      {!isVisitor && <AgentAvatar />}
       <div
         className={cn(
           "max-w-[76%] whitespace-pre-wrap rounded-3xl px-5 py-3 text-[15px] leading-7",
@@ -3067,9 +3098,7 @@ function DiagnosisWizardDrawer({
               ))}
               {isSubmitting && (
                 <div className="flex gap-3">
-                  <div className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/12 text-primary">
-                    <NovaAgentIcon className="size-4" />
-                  </div>
+                  <AgentAvatar />
                   <div className="rounded-3xl px-5 py-3">
                     {wizard.answeredCount + 1 >= wizard.totalCount ? (
                       <DiagnosisFindingsStatus />
@@ -3115,11 +3144,7 @@ function WizardTurnBubble({ turn }: { turn: WebsiteSalesWizardTurn }) {
 
   return (
     <div className={cn("jaabili-message-in flex gap-3", isOwner && "justify-end")}>
-      {!isOwner && (
-        <div className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/12 text-primary">
-          <NovaAgentIcon className="size-4" />
-        </div>
-      )}
+      {!isOwner && <AgentAvatar />}
       <div
         className={cn(
           "max-w-[85%] whitespace-pre-wrap rounded-3xl px-5 py-4 text-[15px] leading-7",
@@ -3128,6 +3153,7 @@ function WizardTurnBubble({ turn }: { turn: WebsiteSalesWizardTurn }) {
       >
         {turn.content}
       </div>
+      {isOwner && <OwnerAvatar />}
     </div>
   );
 }
