@@ -12,10 +12,8 @@ import {
   Lock,
   BarChart,
   Sparkles,
-  Layers,
   MessagesSquare,
   Rocket,
-  Quote,
 } from "lucide-react";
 import { MagneticButton } from "@/components/ui/magnetic-button";
 import { RollingHeadline } from "@/components/ui/rolling-headline";
@@ -50,38 +48,13 @@ const flashCards = [
   { title: "Human Handoff", desc: "Step into any conversation yourself, any time.", icon: ShieldCheck, color: "var(--accent)" },
 ];
 
-const purposeCards = [
-  {
-    title: "Your agent runs on rules you can see, not a black box",
-    desc: "What Nova asks, what it flags, and what it's allowed to do on its own is decided by plain business logic you can review — the model only handles the wording, never the decision.",
-    icon: Layers,
-    accent: "var(--primary)",
-    stat: "01",
-  },
-  {
-    title: "Every agent owns one job, done well",
-    desc: "Nova qualifies website visitors. The next agents each own one real outcome too — support, follow-up, WhatsApp — instead of one general assistant trying to do everything.",
-    icon: Target,
-    accent: "var(--secondary)",
-    stat: "02",
-  },
-  {
-    title: "Nothing goes live without you saying so",
-    desc: "Your agent proposes a plan — what it found, what it recommends — and waits for your approval before anything reaches a real customer. You're always the one who says go.",
-    icon: ShieldCheck,
-    accent: "var(--accent)",
-    stat: "03",
-  },
-];
-
 // Pulled straight from AGENT_CATALOG (lib/agent-catalog.ts) instead of a
 // separate hardcoded list -- that catalog is the single source of truth the
 // dashboard also reads from, so this section can't quietly drift out of
 // sync with which agents are actually real vs. still in development.
-const bentoSpans: Record<string, string> = {
-  "website-sales": "md:col-span-2 md:row-span-2",
-  "follow-up": "md:col-span-2",
-};
+// Equal-weight cards throughout (symmetric grid) rather than one oversized
+// hero card -- Nova being live is already communicated by its status badge,
+// it doesn't need 4x the visual footprint of every other agent too.
 
 const howSteps = [
   {
@@ -309,67 +282,42 @@ export default function Home() {
         </div>
       </section>
 
-      {/* PURPOSE */}
-      <section className="relative pt-6 pb-32">
-        <div className="container px-6 max-w-7xl mx-auto">
-          <div className="grid grid-cols-1 lg:grid-cols-[0.9fr_1.1fr] gap-10 lg:gap-16 items-end mb-10 reveal-up">
-            <div>
-              <div className="inline-flex items-center gap-2 rounded-full border border-border bg-foreground/[0.04] px-3 py-1.5 text-xs font-medium uppercase tracking-[0.18em] text-primary mb-5">
-                <Sparkles className="h-3.5 w-3.5" />
-                Purpose
-              </div>
-              <h2 className="text-3xl md:text-4xl lg:text-5xl text-foreground font-display font-semibold tracking-tight leading-tight">
-                Built to be trusted, not just impressive.
-              </h2>
+      {/* PROBLEM / SOLUTION — direct contrast, sparse, does the differentiation job the old "Purpose" card grid only implied */}
+      <section className="relative py-28 md:py-36">
+        <div className="container px-6 max-w-6xl mx-auto">
+          <div className="text-center mb-16 reveal-up">
+            <div className="inline-flex items-center gap-2 rounded-full border border-border bg-foreground/[0.04] px-3 py-1.5 text-xs font-medium uppercase tracking-[0.18em] text-primary mb-5">
+              <Sparkles className="h-3.5 w-3.5" />
+              Why this is different
             </div>
-            <p className="text-foreground/55 text-base md:text-lg leading-relaxed max-w-2xl lg:justify-self-end">
-              Every agent we build has one job, a clear set of rules for what
-              it can decide on its own, and a hard stop before anything
-              reaches a real customer without you signing off.
-            </p>
+            <h2 className="text-3xl md:text-4xl lg:text-5xl text-foreground font-display font-semibold tracking-tight leading-tight">
+              Not another chat window.
+            </h2>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-            {purposeCards.map((card, i) => (
-              <motion.div
-                key={card.title}
-                initial={{ opacity: 0, y: 26 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, amount: 0.25 }}
-                transition={{ duration: 0.55, delay: i * 0.08, ease: "easeOut" }}
-                className="group relative min-h-[300px] overflow-hidden rounded-2xl border border-border bg-card/35 p-6 backdrop-blur-md transition-all duration-300 hover:-translate-y-1 hover:border-border"
-              >
-                <div
-                  className="absolute -right-16 -top-16 h-44 w-44 rounded-full blur-[70px] opacity-25 transition-opacity duration-500 group-hover:opacity-40"
-                  style={{ backgroundColor: card.accent }}
-                />
-                <div className="relative z-10 flex h-full flex-col">
-                  <div className="mb-8 flex items-center justify-between">
-                    <div
-                      className="flex h-12 w-12 items-center justify-center rounded-xl border border-border bg-foreground/[0.04]"
-                      style={{ color: card.accent }}
-                    >
-                      <card.icon className="h-5 w-5" strokeWidth={1.6} />
-                    </div>
-                    <span
-                      className="font-mono text-sm font-semibold"
-                      style={{ color: card.accent }}
-                    >
-                      {card.stat}
-                    </span>
-                  </div>
-                  <h3 className="text-2xl font-display font-semibold tracking-tight text-foreground leading-tight">
-                    {card.title}
-                  </h3>
-                  <p className="mt-4 text-sm md:text-base leading-relaxed text-foreground/55">
-                    {card.desc}
-                  </p>
-                  <div className="mt-auto pt-8">
-                    <div className="h-px w-full bg-gradient-to-r from-white/15 via-white/5 to-transparent" />
-                  </div>
-                </div>
-              </motion.div>
-            ))}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-px overflow-hidden rounded-3xl border border-border bg-border">
+            <div className="bg-background/95 p-8 md:p-10">
+              <div className="mb-4 text-xs font-semibold uppercase tracking-[0.16em] text-foreground/35">
+                A generic AI chatbot
+              </div>
+              <ul className="space-y-4 text-foreground/55">
+                <li>Answers however the model feels like, turn to turn</li>
+                <li>Acts first, explains later if you ask</li>
+                <li>One assistant trying to do everything at once</li>
+                <li>You find out something went wrong after a customer does</li>
+              </ul>
+            </div>
+            <div className="bg-primary/[0.06] p-8 md:p-10">
+              <div className="mb-4 text-xs font-semibold uppercase tracking-[0.16em] text-primary">
+                Nova
+              </div>
+              <ul className="space-y-4 text-foreground/85">
+                <li className="flex gap-3"><ShieldCheck className="h-5 w-5 shrink-0 text-primary" />What it asks and flags comes from rules you can review</li>
+                <li className="flex gap-3"><ShieldCheck className="h-5 w-5 shrink-0 text-primary" />Proposes a plan, waits for your approval, then acts</li>
+                <li className="flex gap-3"><ShieldCheck className="h-5 w-5 shrink-0 text-primary" />One job — website sales — done properly</li>
+                <li className="flex gap-3"><ShieldCheck className="h-5 w-5 shrink-0 text-primary" />You see exactly what it did and why, before it happens</li>
+              </ul>
+            </div>
           </div>
         </div>
       </section>
@@ -510,13 +458,13 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="bento-grid grid grid-cols-1 md:grid-cols-4 auto-rows-[180px] gap-4">
+          <div className="bento-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {AGENT_CATALOG.map((agent) => {
               const isLive = agent.status === "setup";
               return (
                 <div
                   key={agent.id}
-                  className={`bento-item group relative rounded-3xl border border-border bg-card/30 backdrop-blur-md overflow-hidden p-6 md:p-8 flex flex-col justify-between hover:border-border hover:-translate-y-1 transition-all duration-500 ${bentoSpans[agent.id] ?? "md:col-span-1"}`}
+                  className="bento-item group relative rounded-3xl border border-border bg-card/30 backdrop-blur-md overflow-hidden p-7 flex flex-col gap-5 hover:border-border hover:-translate-y-1 transition-all duration-500 min-h-[190px]"
                 >
                   <div
                     className={`absolute -top-12 -right-12 w-48 h-48 rounded-full blur-[60px] opacity-25 group-hover:opacity-40 transition-opacity ${isLive ? "bg-primary" : "bg-foreground/40"}`}
@@ -538,17 +486,13 @@ export default function Home() {
                     </span>
                   </div>
                   <div className="relative z-10">
-                    <h3
-                      className={`font-display font-semibold text-foreground mb-2 tracking-tight ${agent.id === "website-sales" ? "text-3xl md:text-4xl" : "text-xl"}`}
-                    >
+                    <h3 className="font-display font-semibold text-foreground mb-2 tracking-tight text-xl">
                       {agent.name}
                       <span className="ml-2 text-sm font-normal text-foreground/40">
                         {agent.role}
                       </span>
                     </h3>
-                    <p
-                      className={`text-foreground/55 leading-relaxed font-light ${agent.id === "website-sales" ? "text-base md:text-lg max-w-md" : "text-sm"}`}
-                    >
+                    <p className="text-foreground/55 leading-relaxed font-light text-sm">
                       {agent.description}
                     </p>
                   </div>
@@ -608,32 +552,6 @@ export default function Home() {
                   </p>
                 </div>
               ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* TESTIMONIAL — keep one polished quote */}
-      <section className="py-32 relative">
-        <div className="container px-6 relative z-10 max-w-4xl mx-auto reveal-up">
-          <div className="glass-panel p-12 md:p-16 rounded-[2.5rem] relative overflow-hidden text-center border-border">
-            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary via-secondary to-accent opacity-50" />
-            <div className="absolute -top-24 -right-24 w-64 h-64 bg-primary/10 rounded-full blur-[80px]" />
-            <Quote className="w-10 h-10 text-foreground/15 mx-auto mb-8" strokeWidth={1.5} />
-            <h3 className="text-2xl md:text-4xl font-serif italic text-foreground leading-relaxed mb-8">
-              "I didn't want to build another chat window. I wanted something
-              a shop owner could actually trust to run part of their business
-              — which meant it had to explain itself, and it had to ask
-              before it acted."
-            </h3>
-            <div className="flex items-center justify-center gap-4">
-              <div className="w-12 h-12 rounded-full bg-foreground/10 flex items-center justify-center font-serif text-xl border border-border">
-                SK
-              </div>
-              <div className="text-left">
-                <div className="text-foreground font-medium">Saathvik Kalepu</div>
-                <div className="text-foreground/50 text-sm">Founder, Jaabili</div>
-              </div>
             </div>
           </div>
         </div>
